@@ -1,0 +1,15 @@
+balicek: AI pracovní kompas
+verze: RC 0.1
+datum: 2026-10
+popis: Pomocník v Claude, který rozhodne, kde má pracovní problém bydlet (Chat vs. Project), a připraví hotový handoff.
+zacni: START-ZDE.md
+platforma: claude.ai (stačí free účet)
+soubory:
+  - cesta: "1 Do Instructions/runtime-kernel.md"
+    kam: Project „AI pracovní kompas“ → pole Instructions (vložit celý obsah)
+  - cesta: "2 Do Project knowledge/AI-pracovni-kompas.md"
+    kam: Project knowledge → Add text content (Title = název souboru)
+  - cesta: "2 Do Project knowledge/product-truth.yaml"
+    kam: Project knowledge → Add text content (Title = název souboru)
+spusteni: nový chat v Projectu → „Začínáme“
+dlouhodoby_projekt: když Kompas doporučí Project a práce má fáze a potrvá týdny → Balíček – Projektový start

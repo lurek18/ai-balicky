@@ -1,0 +1,23 @@
+balicek: Projektový start
+verze: "0.3"
+datum: 2026-10
+popis: Příprava zadání a založení dlouhodobého projektu s AI; paměť projektu v souborech, ne v chatu.
+zacni: START-ZDE.md
+navazuje_na: AI pracovní kompas (Balíček – AI Kompas)
+soubory:
+  - cesta: START-ZDE.md
+    ucel: návod, kde začít
+  - cesta: 01-PRIPRAVA-ZADANI.md
+    ucel: koučovací prompt, výsledek PROJEKT-START.md
+    kam: nový chat (Claude, ChatGPT, Gemini), napsat „Začínáme“
+  - cesta: 00-PRUVODCE.md
+    ucel: pojmy, režimy, postup podle nástroje
+  - cesta: 02-PROVOZ-PROJEKTU.md
+    ucel: rytmus práce v běžícím projektu
+  - cesta: sablony/
+    ucel: prázdné soubory projektu pro ruční založení (lehký, plný, ruční varianta)
+  - cesta: priklady/PROJEKT-START-vzor-vyzkum.md
+    ucel: ukázka hotového PROJEKT-START.md
+  - cesta: Prezentace/Projektovy-start-workshop.html
+    ucel: workshop, návod a tahák (prohlížeč, ovládání šipkami)
+nastroje: [Claude Cowork, Claude Code, Codex, Gemini CLI, Antigravity, Claude Project, ChatGPT Project, Gemini Gem]

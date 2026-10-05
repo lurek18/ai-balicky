@@ -1,0 +1,131 @@
+# AI pracovní kompas — Product Truth Registry
+# Ručně udržovaný registr schopností Claude, na kterých Kompas smí stavět.
+# Viz 01-SPECIFICATION-RC01.md kap. 8 a D-014, D-016.
+#
+# status:
+#   core              = vždy předpokládáno dostupné, je základem povinné cesty
+#   core_aware        = Kompas o tom ví a počítá s tím, ale NENÍ to podmínka
+#   optional          = běžně dostupné, ale ne podmínka doporučení
+#   optional_volatile = dostupnost kolísá podle účtu/plánu/verze, MUSÍ mít fallback
+#   excluded          = mimo povinnou osobní cestu RC 0.1 (viz kap. 10 specifikace)
+#
+# staleness_days: po tolika dnech od "verified" se optional/optional_volatile
+# položka nesmí prezentovat jako jistá dostupnost (D-016).
+
+version: "0.1"
+platform: "Claude (claude.ai) — osobní účet"
+last_reviewed: "2026-08-27"
+staleness_days: 90
+
+capabilities:
+
+  - id: chat
+    name: "Chat"
+    status: core
+    description: "Jednorázová nebo iterovaná konverzace mimo Project. Pracovní stůl."
+    verified: "2026-08-27"
+    fallback: null
+
+  - id: projects
+    name: "Projects"
+    status: core
+    description: "Prostor se společnými pravidly a zdroji pro víc souvisejících chatů. Kancelář."
+    verified: "2026-08-27"
+    fallback: null
+
+  - id: custom_instructions
+    name: "Custom instructions (na úrovni Projectu)"
+    status: core
+    description: "Trvalá pravidla platná pro všechny chaty v Projectu. Sem patří runtime kernel Kompasu i pravidla uživatelových vlastních Projectů (vrstva Vždy)."
+    verified: "2026-08-27"
+    fallback: null
+
+  - id: project_knowledge
+    name: "Project knowledge (soubory/zdroje Projectu)"
+    status: core
+    description: "Nahrané soubory dostupné všem chatům v Projectu. Sem patří AI-pracovni-kompas.md i podklady uživatelových vlastních Projectů (vrstva Z čeho)."
+    verified: "2026-08-27"
+    fallback: null
+
+  - id: cross_chat_memory
+    name: "Paměť napříč chaty / napříč Projekty"
+    status: core_aware
+    description: "Některé účty mají zapnutou funkci, která si pamatuje kontext mezi konverzacemi."
+    verified: "2026-08-27"
+    fallback: "Kompas nikdy nepředpokládá, že si pamatuje dřívější konverzaci jen díky této funkci. Kontinuita jde přes explicitní checkpoint (compass_checkpoint_v1), ne přes tichou paměť."
+
+  - id: web_search
+    name: "Vyhledávání na webu"
+    status: optional
+    verified: "2026-08-27"
+    fallback: "Pokud není k dispozici nebo je vypnuté, Kompas pracuje jen s tím, co uživatel poskytl, a řekne to."
+
+  - id: artifacts
+    name: "Artifacts (samostatný panel pro dokument/kód)"
+    status: optional
+    verified: "2026-08-27"
+    fallback: "Bez Artifacts Kompas výstup napíše přímo do chatu."
+
+  - id: style_tone_settings
+    name: "Nastavení stylu odpovědí"
+    status: optional
+    verified: "2026-08-27"
+    fallback: "Tone of voice se dá vždy vynutit i přes Custom instructions, i bez tohoto nastavení."
+
+  - id: research
+    name: "Rozšířený research režim"
+    status: optional_volatile
+    verified: "2026-08-27"
+    fallback: "Pokud není dostupný, Kompas navrhne ruční vícekrokový rešeršní postup (dílčí dotazy, průběžné ověření zdrojů)."
+
+  - id: skills
+    name: "Skills"
+    status: optional_volatile
+    verified: "2026-08-27"
+    fallback: "Pokud nejsou dostupné nebo je uživatel nemůže vytvořit, Kompas navrhne uložený postup jako text v Custom instructions nebo jako šablonu v Project knowledge."
+
+  - id: connectors_mcp
+    name: "Connectors / MCP integrace (např. Drive, Slack, Outlook)"
+    status: optional_volatile
+    verified: "2026-08-27"
+    fallback: "Pokud konektor není zapojený, uživatel data nahraje nebo vloží ručně."
+
+  - id: scheduled_tasks
+    name: "Scheduled Tasks / Routines"
+    status: optional_volatile
+    verified: "2026-08-27"
+    fallback: "Pokud nejsou dostupné, uživatel spustí další běh workflow kitu ručně podle uloženého postupu."
+
+  - id: custom_skill_or_plugin_creation
+    name: "Tvorba vlastních Skills/pluginů"
+    status: excluded
+    note: "Mimo osobní povinnou cestu RC 0.1 (kap. 10 specifikace). Netýká se běžného uživatele Kompasu."
+
+  - id: api_mcp_setup
+    name: "Zakládání vlastního API/MCP serveru"
+    status: excluded
+    note: "Mimo osobní povinnou cestu RC 0.1."
+
+  - id: claude_code_cowork_automation
+    name: "Claude Code / Cowork agentní automatizace"
+    status: excluded
+    note: "Vývojářský/pokročilý povrch, ne součást osobní cesty koncového uživatele Kompasu."
+
+  - id: enterprise_admin
+    name: "Enterprise/admin nastavení organizace"
+    status: excluded
+    note: "Mimo scope RC 0.1 — cílový uživatel je osobní účet."
+
+# --- Jednoduchá kontrola konzistence (ruční, bez automatizace — D-002, D-009) ---
+# Před každým použitím v Learn/Advise/Debug Kompas kontroluje:
+#  1. Je today - last_reviewed <= staleness_days? Pokud NE, žádná optional/optional_volatile
+#     položka se nesmí tvrdit jako jistě dostupná; Kompas to řekne a nabídne ověření v UI.
+#  2. Odpovídá klasifikace capability, kterou chce použít, hodnotě v tomto souboru?
+#     Pokud capability v souboru chybí, Kompas ji považuje za optional_volatile bez fallbacku
+#     a raději ji nenabízí, dokud není doplněna.
+#  3. Při rozporu mezi tímto souborem a tím, co Kompas v UI skutečně vidí, platí aktuální UI —
+#     Kompas na rozpor upozorní uživatele a doporučí zapsat aktualizaci sem (F1 úkol pro autora).
+validation:
+  last_manual_check: "2026-08-27"
+  check_interval_days: 90
+  next_check_due: "2026-11-25"

@@ -1,0 +1,1496 @@
+<!doctype html>
+<html lang="cs">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Od nápadu k řízenému projektu — AI balíčky</title>
+<style>
+/* Sdílený design systém pro prezentace.
+   Vytaženo z presentations/2026-09-03-prezentace-vedeni-ai-adopce.html (první deck,
+   kde tenhle vzhled vznikl) — obecné/znovupoužitelné části, ne obsahové specifika
+   jednoho konkrétního slidu. Nové prezentace tenhle soubor linkují, nekopírují CSS
+   znovu. Viz presentations/_template/README.md pro postup. */
+
+:root {
+  --bg: #EEF1F1;
+  --surface: #FFFFFF;
+  --surface-2: #E3E8E8;
+  --ink: #1A2124;
+  --ink-soft: #52606A;
+  --ink-faint: #7B878B;
+  --line: #CBD3D4;
+  --accent: #A15A24;
+  --accent-strong: #8A4B1C;
+  --accent-tint: rgba(161, 90, 36, 0.10);
+  --good: #2C7A6B;
+  --good-tint: rgba(44, 122, 107, 0.12);
+  --warn: #A1671E;
+  --warn-tint: rgba(161, 103, 30, 0.12);
+  --bad: #B0442E;
+  --bad-tint: rgba(176, 68, 46, 0.12);
+
+  --font-display: "Futura PT", Futura, "Century Gothic", "Trebuchet MS", sans-serif;
+  --font-body: "Iowan Old Style", "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+  --font-mono: "SF Mono", "Berkeley Mono", Menlo, Consolas, "Roboto Mono", monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181A; --surface: #1B2123; --surface-2: #232A2C;
+    --ink: #E8ECEC; --ink-soft: #A4B0B2; --ink-faint: #798487; --line: #333C3E;
+    --accent: #DE9955; --accent-strong: #EFB279; --accent-tint: rgba(222, 153, 85, 0.14);
+    --good: #5FC0AA; --good-tint: rgba(95, 192, 170, 0.14);
+    --warn: #E0A252; --warn-tint: rgba(224, 162, 82, 0.14);
+    --bad: #E07A63; --bad-tint: rgba(224, 122, 99, 0.14);
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #14181A; --surface: #1B2123; --surface-2: #232A2C;
+  --ink: #E8ECEC; --ink-soft: #A4B0B2; --ink-faint: #798487; --line: #333C3E;
+  --accent: #DE9955; --accent-strong: #EFB279; --accent-tint: rgba(222, 153, 85, 0.14);
+  --good: #5FC0AA; --good-tint: rgba(95, 192, 170, 0.14);
+  --warn: #E0A252; --warn-tint: rgba(224, 162, 82, 0.14);
+  --bad: #E07A63; --bad-tint: rgba(224, 122, 99, 0.14);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body);
+  margin: 0; -webkit-font-smoothing: antialiased; overflow: hidden;
+}
+h1, h2, h3 { font-family: var(--font-display); text-wrap: balance; margin: 0; }
+.eyebrow {
+  font-family: var(--font-mono); font-size: 12.5px; letter-spacing: 0.11em;
+  text-transform: uppercase; color: var(--accent-strong);
+}
+strong { color: var(--ink); }
+
+/* ---------- chrome (topbar/progress, hud, brand) ---------- */
+.topbar { position: fixed; top: 0; left: 0; right: 0; height: 4px; z-index: 20; background: var(--line); }
+.topbar__fill { height: 100%; background: var(--accent); transition: width .35s ease; }
+.hud {
+  position: fixed; bottom: 14px; right: 20px; z-index: 20;
+  font-family: var(--font-mono); font-size: 12px; color: var(--ink-faint);
+  display: flex; align-items: center; gap: 10px;
+}
+.hud .count { font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+.hud .hint { opacity: .7; }
+.brand {
+  position: fixed; bottom: 14px; left: 20px; z-index: 20;
+  font-family: var(--font-mono); font-size: 12px; letter-spacing: .04em; color: var(--ink-faint);
+}
+
+/* ---------- deck / slides ---------- */
+.deck { position: relative; width: 100vw; height: 100vh; }
+.slide {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 64px 72px 56px; opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity .4s ease;
+  overflow-y: auto;
+}
+.slide.is-active { opacity: 1; visibility: visible; pointer-events: auto; }
+.slide__inner { max-width: 1080px; width: 100%; margin: 0 auto; }
+.slide__num { font-family: var(--font-mono); font-size: 12px; color: var(--ink-faint); margin-bottom: 10px; }
+.slide h1 { font-size: clamp(26px, 3vw, 38px); font-weight: 700; color: var(--ink); margin-bottom: 6px; letter-spacing: -0.01em; }
+.slide .subtitle { color: var(--ink-soft); font-size: 15.5px; margin-bottom: 28px; max-width: 760px; }
+.slide .subtitle:last-child { margin-bottom: 0; }
+.slide.title { text-align: center; }
+.slide.title h1 { font-size: clamp(32px, 4.2vw, 52px); }
+.slide.title .subtitle { max-width: 620px; margin-left: auto; margin-right: auto; }
+.slide.title .kicker { margin-top: 40px; font-family: var(--font-mono); font-size: 12px; color: var(--ink-faint); letter-spacing: .08em; text-transform: uppercase; }
+
+p { line-height: 1.55; }
+ul.plain { margin: 0; padding: 0; list-style: none; }
+ul.bullets { margin: 0; padding-left: 20px; }
+ul.bullets li { margin-bottom: 8px; line-height: 1.5; }
+
+/* ---------- obecné stavební bloky ---------- */
+.card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 20px 22px; }
+.grid { display: grid; gap: 16px; }
+.grid-2 { grid-template-columns: repeat(2, 1fr); }
+.grid-3 { grid-template-columns: repeat(3, 1fr); }
+
+.tag {
+  display: inline-flex; align-items: center; font-family: var(--font-mono);
+  font-size: 11px; padding: 3px 9px; border-radius: 20px; letter-spacing: .02em; white-space: nowrap;
+}
+.tag-priority { background: var(--accent-tint); color: var(--accent-strong); font-weight: 600; }
+
+table.deck-table { width: 100%; border-collapse: collapse; font-size: 14.5px; }
+table.deck-table th, table.deck-table td { padding: 10px 12px; border-bottom: 1px solid var(--line); text-align: left; }
+table.deck-table th { font-family: var(--font-mono); font-size: 11px; letter-spacing: .05em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }
+table.deck-table td.num { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+table.deck-table tr.total td { font-weight: 700; color: var(--accent-strong); background: var(--accent-tint); }
+
+.callout { border-left: 3px solid var(--accent); background: var(--accent-tint); border-radius: 0 10px 10px 0; padding: 12px 16px; font-size: 14.5px; color: var(--ink-soft); }
+.callout.warn { border-color: var(--warn); background: var(--warn-tint); }
+.callout.good { border-color: var(--good); background: var(--good-tint); }
+.footnote { font-size: 12.5px; color: var(--ink-faint); font-style: italic; }
+.stat-big { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--accent-strong); font-weight: 700; }
+
+/* ---------- komentář — plovoucí panel, jeden pro celou prezentaci (viz deck.js) ---------- */
+.comment-panel {
+  position: fixed; top: 90px; right: 20px; z-index: 30; width: 300px;
+  background: var(--surface); border: 1px solid var(--accent); border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(0,0,0,.28); overflow: hidden;
+}
+.comment-panel__header {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 8px 10px; background: var(--accent-tint); cursor: move; user-select: none;
+  font-family: var(--font-mono); font-size: 11px; letter-spacing: .04em; text-transform: uppercase;
+  color: var(--accent-strong);
+}
+.comment-panel__header .drag-hint { opacity: .6; }
+.comment-panel__collapse {
+  border: none; background: none; color: var(--accent-strong); font-family: var(--font-mono);
+  font-size: 14px; cursor: pointer; line-height: 1; padding: 0 2px;
+}
+.comment-panel__body { padding: 10px; }
+.comment-panel.is-collapsed .comment-panel__body { display: none; }
+.comment-panel textarea {
+  width: 100%; min-height: 110px; resize: vertical;
+  font-family: var(--font-body); font-size: 13.5px; color: var(--ink);
+  background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px;
+}
+.comment-panel__footer {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 0 10px 10px; font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint);
+}
+.comment-panel__footer .saved-hint { color: var(--good); opacity: 0; transition: opacity .3s ease; }
+.comment-panel__footer .saved-hint.show { opacity: 1; }
+
+.comment-toolbar {
+  position: fixed; bottom: 14px; left: 50%; transform: translateX(-50%); z-index: 20;
+  font-family: var(--font-mono); font-size: 12px; display: flex; gap: 10px; align-items: center;
+}
+.comment-toolbar button {
+  font-family: var(--font-mono); font-size: 12px; background: var(--surface); color: var(--ink-soft);
+  border: 1px solid var(--line); border-radius: 6px; padding: 5px 11px; cursor: pointer;
+}
+.comment-toolbar button:hover { color: var(--ink); border-color: var(--accent); }
+.comment-toolbar button#approveFinal.is-approved { color: var(--good); border-color: var(--good); background: var(--good-tint); }
+
+.comment-panel, .comment-toolbar { display:none !important; }
+</style>
+<style>
+/* ===== Projektový start — specifické prvky decku ===== */
+.f { opacity: 0; transform: translateY(10px); transition: opacity .5s ease, transform .5s ease; }
+.f.is-on { opacity: 1; transform: none; }
+.f-fade { opacity: 0; transition: opacity .6s ease; }
+.f-fade.is-on { opacity: 1; }
+
+/* soubor (dokument) */
+.file {
+  position: relative; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 10px 18px 10px 10px; padding: 14px 16px 12px; min-width: 0;
+}
+.file::before {
+  content: ""; position: absolute; top: -1px; right: -1px; width: 18px; height: 18px;
+  background: linear-gradient(225deg, var(--bg) 50%, var(--line) 50%); border-radius: 0 18px 0 4px;
+}
+.file .fname { font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: var(--accent-strong); }
+.file .fhuman { font-family: var(--font-display); font-size: 16px; margin: 4px 0 6px; color: var(--ink); }
+.file p { margin: 0; font-size: 13.5px; color: var(--ink-soft); line-height: 1.45; }
+.file.good .fname { color: var(--good); }
+.file.tech { opacity: .7; border-style: dashed; }
+
+/* chat mock */
+.chat { background: var(--surface); border: 1px solid var(--line); border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 8px; height: 360px; overflow: hidden; position: relative; }
+.bub { max-width: 82%; padding: 8px 12px; border-radius: 14px; font-size: 13.5px; line-height: 1.4; }
+.bub.me { align-self: flex-end; background: var(--accent-tint); color: var(--ink); border-bottom-right-radius: 4px; }
+.bub.ai { align-self: flex-start; background: var(--surface-2); color: var(--ink-soft); border-bottom-left-radius: 4px; }
+.chat .fadeTop { position: absolute; left: 0; right: 0; top: 0; height: 120px; background: linear-gradient(var(--surface), transparent); opacity: 0; transition: opacity 1.2s ease; pointer-events: none; }
+.chat .fadeTop.is-on { opacity: .95; }
+.chat .lost { position: absolute; top: 14px; left: 50%; transform: translateX(-50%); font-family: var(--font-mono); font-size: 11px; color: var(--bad); letter-spacing: .06em; text-transform: uppercase; z-index: 2; }
+.slide.is-active .bub.pop { animation: pop .45s ease both; }
+@keyframes pop { from { opacity: 0; transform: translateY(12px) scale(.97); } to { opacity: 1; transform: none; } }
+
+/* žebřík nástrojů */
+.ladder { display: flex; align-items: flex-end; gap: 14px; height: 230px; padding: 0 6px; }
+.rung { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 8px; height: 100%; justify-content: flex-end; }
+.rung .bar { width: 100%; border-radius: 10px 10px 4px 4px; background: var(--accent); height: 0; transition: height 1s cubic-bezier(.2,.8,.2,1); }
+.rung .bar.is-on { height: var(--h); }
+.rung .lbl { font-family: var(--font-display); font-size: 15px; }
+.rung .sub { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); text-align: center; }
+
+/* SVG diagramy */
+svg.dia { width: 100%; height: auto; overflow: visible; }
+svg.dia text { font-family: var(--font-body); fill: var(--ink); }
+svg.dia .mono { font-family: var(--font-mono); }
+svg.dia .box { fill: var(--surface); stroke: var(--line); stroke-width: 1.5; }
+svg.dia .box.acc { stroke: var(--accent); fill: color-mix(in srgb, var(--accent) 12%, var(--surface)); }
+svg.dia .box.good { stroke: var(--good); fill: color-mix(in srgb, var(--good) 12%, var(--surface)); }
+svg.dia .box.warn { stroke: var(--warn); fill: color-mix(in srgb, var(--warn) 12%, var(--surface)); stroke-dasharray: 6 5; }
+svg.dia .ln { fill: none; stroke: var(--ink-faint); stroke-width: 2; }
+svg.dia .ln.acc { stroke: var(--accent); }
+svg.dia .ln.good { stroke: var(--good); }
+svg.dia .ln.dash { stroke-dasharray: 6 6; }
+svg.dia .soft { fill: var(--ink-soft); }
+svg.dia .faint { fill: var(--ink-faint); }
+svg.dia .accfill { fill: var(--accent-strong); }
+svg.dia .goodfill { fill: var(--good); }
+/* kreslení čar */
+svg.dia .draw { stroke-dasharray: var(--len, 600); stroke-dashoffset: var(--len, 600); transition: stroke-dashoffset 1s ease; }
+svg.dia .draw.is-on { stroke-dashoffset: 0; }
+svg.dia g.f, svg.dia g.f-fade { transform-box: fill-box; }
+/* tekoucí přerušovaná čára (flow) */
+.slide.is-active svg.dia .flow { animation: flow 1.2s linear infinite; }
+@keyframes flow { to { stroke-dashoffset: -24; } }
+/* putující tečka */
+.slide.is-active .travel { offset-rotate: 0deg; animation: travel 6s ease-in-out infinite; }
+@keyframes travel { 0% { offset-distance: 0%; opacity: 0; } 8% { opacity: 1; } 92% { opacity: 1; } 100% { offset-distance: 100%; opacity: 0; } }
+/* pulz */
+.slide.is-active .pulse { animation: pulse 2.2s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+@keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.06); } }
+
+/* pipeline (slide flow) */
+.pipe { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0; position: relative; margin-top: 10px; }
+.node { position: relative; text-align: center; padding: 0 6px; }
+.node .dot { width: 54px; height: 54px; margin: 0 auto 10px; border-radius: 50%; border: 2px solid var(--line); background: var(--surface); display: flex; align-items: center; justify-content: center; font-family: var(--font-mono); font-size: 15px; color: var(--ink-faint); transition: all .5s ease; position: relative; z-index: 2; }
+.node.is-on .dot { border-color: var(--accent); background: var(--accent); color: #fff; box-shadow: 0 0 0 6px var(--accent-tint); }
+.node.last.is-on .dot { border-color: var(--good); background: var(--good); box-shadow: 0 0 0 6px var(--good-tint); }
+.node h3 { font-size: 14.5px; margin-bottom: 4px; }
+.node p { font-size: 12.5px; color: var(--ink-soft); margin: 0; line-height: 1.4; }
+.node .tool { display: inline-block; margin-top: 6px; font-family: var(--font-mono); font-size: 10.5px; color: var(--accent-strong); background: var(--accent-tint); padding: 2px 7px; border-radius: 10px; }
+.node::after { content: ""; position: absolute; top: 27px; left: calc(50% + 27px); width: calc(100% - 54px); height: 2px; background: var(--line); z-index: 1; }
+.node:last-child::after { display: none; }
+.node .wire { position: absolute; top: 27px; left: calc(50% + 27px); height: 2px; width: 0; background: var(--accent); z-index: 1; transition: width .6s ease .2s; }
+.node.is-on .wire { width: calc(100% - 54px); }
+.node:last-child .wire { display: none; }
+
+/* timeline fází koučinku */
+.phases { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; }
+.ph { border: 1px solid var(--line); border-radius: 12px; padding: 10px 10px 12px; background: var(--surface); position: relative; transition: all .5s ease; }
+.ph .n { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); }
+.ph h3 { font-size: 13.5px; margin: 4px 0 4px; }
+.ph p { margin: 0; font-size: 12px; color: var(--ink-soft); line-height: 1.35; }
+.ph.full-only { border-style: dashed; }
+.ph.skip.is-on { opacity: .35; }
+.ph.hl.is-on { border-color: var(--accent); background: var(--accent-tint); }
+
+/* anatomie souboru PROJEKT-START */
+.doc { background: var(--surface); border: 1px solid var(--line); border-radius: 12px 26px 12px 12px; padding: 18px; position: relative; }
+.doc .part { border-radius: 10px; padding: 12px 14px; margin-bottom: 10px; border: 1px solid var(--line); }
+.doc .part:last-child { margin-bottom: 0; }
+.doc .part h3 { font-size: 15px; margin-bottom: 4px; }
+.doc .part p { margin: 0; font-size: 13px; color: var(--ink-soft); }
+.doc .part.a { border-color: var(--accent); background: var(--accent-tint); }
+.doc .part.b { border-color: var(--good); background: var(--good-tint); }
+.doc .part.c { border-style: dashed; }
+
+/* loop rytmu */
+.loopwrap { display: grid; grid-template-columns: 1.1fr 1fr; gap: 28px; align-items: center; }
+.slide.is-active .orbit { animation: orbit 8s linear infinite; transform-origin: 210px 190px; }
+@keyframes orbit { to { transform: rotate(360deg); } }
+
+/* drobnosti */
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 14px; }
+.kv .k { font-family: var(--font-mono); font-size: 12px; color: var(--accent-strong); padding-top: 2px; }
+.big-quote { font-family: var(--font-display); font-size: clamp(22px, 2.4vw, 30px); line-height: 1.3; color: var(--ink); }
+.mini { font-size: 13px; color: var(--ink-soft); }
+.vs { display: grid; grid-template-columns: 1fr auto 1fr; gap: 18px; align-items: stretch; }
+.vs .mid { display: flex; align-items: center; font-family: var(--font-mono); color: var(--ink-faint); }
+.chaos { position: relative; height: 170px; }
+.chaos span { position: absolute; font-family: var(--font-mono); font-size: 12px; color: var(--ink-faint); background: var(--surface-2); padding: 4px 8px; border-radius: 6px; }
+.slide.is-active .chaos span { animation: jitter 2.4s ease-in-out infinite; }
+.slide.is-active .chaos span:nth-child(2n) { animation-delay: -.8s; }
+.slide.is-active .chaos span:nth-child(3n) { animation-delay: -1.6s; }
+@keyframes jitter { 0%,100% { transform: translate(0,0) rotate(-2deg); } 50% { transform: translate(4px,-5px) rotate(2deg); } }
+.folder { display: grid; gap: 8px; }
+.timeline { display: grid; grid-template-columns: repeat(6, 1fr); gap: 10px; }
+.tl { border-top: 3px solid var(--line); padding-top: 10px; transition: border-color .5s ease; }
+.tl.is-on { border-color: var(--accent); }
+.tl .when { font-family: var(--font-mono); font-size: 11px; color: var(--ink-faint); }
+.tl h3 { font-size: 14.5px; margin: 4px 0; }
+.tl p { font-size: 12.5px; margin: 0; color: var(--ink-soft); line-height: 1.4; }
+.tl.meta.is-on { border-color: var(--good); }
+
+/* --- workshop prvky --- */
+.aha, .ex, .howto { display:inline-flex; align-items:center; gap:6px; font-family:var(--font-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; padding:4px 10px; border-radius:20px; font-weight:600; margin-right:6px; }
+.aha { background:var(--accent); color:#fff; }
+.slide.is-active .aha { animation: ahaGlow 2.6s ease-in-out infinite; }
+@keyframes ahaGlow { 0%,100% { box-shadow:0 0 0 0 var(--accent-tint); } 50% { box-shadow:0 0 0 7px var(--accent-tint); } }
+.ex { background:var(--good); color:#fff; }
+.howto { background:var(--surface-2); color:var(--ink-soft); border:1px solid var(--line); }
+.toc { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; }
+.toc__item { text-align:left; background:var(--surface); border:1px solid var(--line); border-radius:14px; padding:16px 18px; cursor:pointer; display:grid; grid-template-columns:auto 1fr; column-gap:12px; row-gap:2px; font:inherit; color:var(--ink); transition:border-color .2s ease, transform .2s ease; }
+.toc__item:hover { border-color:var(--accent); transform:translateY(-2px); }
+.toc__n { grid-row:span 2; font-family:var(--font-mono); font-size:22px; color:var(--accent-strong); font-weight:700; }
+.toc__t { font-family:var(--font-display); font-size:16px; }
+.toc__d { font-size:12.5px; color:var(--ink-soft); }
+.legend { display:flex; flex-wrap:wrap; gap:22px; margin-top:22px; font-size:13.5px; color:var(--ink-soft); }
+.steps { list-style:none; margin:0; padding:0; display:grid; gap:12px; }
+.steps li { display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:start; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:14px 16px; font-size:15px; }
+.steps__n { width:30px; height:30px; border-radius:50%; background:var(--accent); color:#fff; display:flex; align-items:center; justify-content:center; font-family:var(--font-mono); font-size:13px; }
+.steps--sm li { padding:8px 10px; font-size:13.5px; border:none; background:var(--surface-2); }
+.steps--sm .steps__n { width:24px; height:24px; font-size:11px; }
+.steps + .callout { margin-top:16px; }
+.prompt { position:relative; background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:10px 14px 12px; margin-bottom:10px; }
+.prompt__h { font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; }
+.prompt pre { margin:0; white-space:pre-wrap; font-family:var(--font-mono); font-size:13px; color:var(--ink); background:var(--surface-2); border-radius:8px; padding:8px 10px; padding-right:90px; }
+.prompt .copy { position:absolute; right:22px; bottom:20px; font-family:var(--font-mono); font-size:11px; border:1px solid var(--line); background:var(--surface); color:var(--ink-soft); border-radius:6px; padding:3px 8px; cursor:pointer; }
+
+.parts { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+.part-h { font-family:var(--font-display); font-size:17px; margin-bottom:10px; display:flex; align-items:center; gap:10px; }
+.part-n { font-family:var(--font-mono); font-size:11px; letter-spacing:.08em; text-transform:uppercase; background:var(--accent); color:#fff; padding:3px 9px; border-radius:20px; }
+.part-n.good { background:var(--good); }
+.part-t { font-family:var(--font-mono); font-size:11px; color:var(--ink-faint); margin-left:auto; }
+.toc--col { grid-template-columns:1fr; gap:8px; }
+.toc--col .toc__item { padding:11px 14px; }
+.stepcount { margin-left:8px; color:var(--accent-strong); }
+
+.handover { display:grid; grid-template-columns:1fr 54px 1fr 54px 1fr 54px 1fr; align-items:start; gap:0; }
+.hv { min-width:0; }
+.hv__tag { font-family:var(--font-mono); font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--ink-soft); margin-bottom:6px; }
+.hv__tag.acc { color:var(--accent-strong); } .hv__tag.good { color:var(--good); }
+.hv__win { background:var(--surface); border:1px solid var(--line); border-radius:12px; padding:10px; min-height:170px; display:flex; flex-direction:column; gap:6px; }
+.hv__win .bub { max-width:100%; font-size:12px; padding:6px 9px; }
+.hv__block { font-family:var(--font-mono); font-size:10.5px; background:var(--accent-tint); border:1px dashed var(--accent); border-radius:8px; padding:6px 8px; display:flex; flex-direction:column; gap:2px; color:var(--ink); }
+.hv__file { font-family:var(--font-mono); font-size:11px; color:var(--accent-strong); background:var(--surface-2); border-radius:6px; padding:4px 8px; align-self:flex-start; }
+.hv__part { font-size:12px; border-radius:8px; padding:7px 9px; border:1px solid var(--line); }
+.hv__part.a { border-color:var(--accent); background:var(--accent-tint); } .hv__part.b { border-color:var(--good); background:var(--good-tint); } .hv__part.c { border-style:dashed; }
+.hv__tree { font-family:var(--font-mono); font-size:11px; display:flex; flex-direction:column; gap:2px; color:var(--ink-soft); background:var(--good-tint); border-radius:8px; padding:6px 8px; }
+.hv__p { font-size:12.5px; color:var(--ink-soft); margin:8px 2px 0; line-height:1.4; }
+.hv__arrow { display:flex; flex-direction:column; align-items:center; justify-content:center; padding-top:90px; }
+.hv__arrow svg { width:48px; height:16px; overflow:visible; }
+.hv__arrow span { font-family:var(--font-mono); font-size:9.5px; color:var(--ink-faint); margin-top:4px; text-align:center; }
+.dl { display:inline-flex; align-items:center; gap:8px; font-family:var(--font-mono); font-size:12.5px; background:var(--accent); color:#fff !important; text-decoration:none; padding:8px 14px; border-radius:20px; }
+.dl.is-missing { background:var(--surface-2); color:var(--ink-faint) !important; border:1px dashed var(--line); pointer-events:none; }
+.prompt .copy.done { color:var(--good); border-color:var(--good); }
+
+@media (prefers-reduced-motion: reduce) {
+  .slide.is-active .aha { animation:none !important; }
+  .f, .f-fade, .rung .bar, svg.dia .draw, .node .wire { transition: none !important; }
+  .slide.is-active .travel, .slide.is-active .pulse, .slide.is-active .orbit, .slide.is-active .chaos span, .slide.is-active svg.dia .flow, .slide.is-active .bub.pop { animation: none !important; }
+}
+</style>
+</head>
+<body data-presentation-id="2026-10-05-prezentace-projektovy-start">
+
+<div class="topbar"><div class="topbar__fill" id="progressFill"></div></div>
+<div class="hud"><span class="count" id="slideCount">Úvod</span><span class="hint">space/→ další · ←/⇧space zpět</span></div>
+<div class="brand">AI balíčky · github.com/lurek18/ai-balicky</div>
+
+<div class="deck">
+
+<!-- 0 — TITUL -->
+<section class="slide title is-active">
+  <div class="slide__inner">
+    <span class="eyebrow">Projektový start · jak s AI vést projekt</span>
+    <h1>Od nápadu k řízenému projektu</h1>
+    <p class="subtitle">Příběh jedné metodiky: proč nekonečný chat nestačí, z čeho jsme vyšli, jak to funguje a jak jsme ji sami prověřili.</p>
+    <svg class="dia" viewBox="0 0 760 100" style="max-width:640px;margin:30px auto 0;display:block">
+      <path id="tpath" class="ln acc flow" d="M60 45 H700" stroke-dasharray="8 8"/>
+      <g><circle cx="60" cy="45" r="32" class="box acc"/><text x="60" y="50" text-anchor="middle" class="mono" font-size="13">nápad</text></g>
+      <g><circle cx="273" cy="45" r="32" class="box"/><text x="273" y="50" text-anchor="middle" class="mono" font-size="12">zadání</text></g>
+      <g><circle cx="486" cy="45" r="32" class="box"/><text x="486" y="50" text-anchor="middle" class="mono" font-size="12">soubory</text></g>
+      <g class="pulse"><circle cx="700" cy="45" r="36" class="box good"/><text x="700" y="50" text-anchor="middle" class="mono" font-size="12">projekt</text></g>
+      <circle r="7" class="accfill travel" style="offset-path: path('M60 45 H700');"/>
+    </svg>
+    <div class="kicker">AI balíčky · Projektový start v0.3 · AI Kompas RC 0.1</div>
+    <p style="margin-top:18px"><a class="dl" data-link="balicky" target="_blank" rel="noopener">Materiály: AI balíčky ↗</a></p>
+  </div>
+</section>
+
+<!-- NEW:rozcestnik -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Jak tuhle prezentaci používat</div>
+    <h1>Workshop, návod i tahák v jednom</h1>
+    <p class="subtitle">Jedna prezentace, dvě části: nejdřív se zorientujete a nainstalujete Kompas, pak to použijete na vlastním projektu. Části jdou i na dvě setkání. Když se vrátíte, klikněte na kapitolu.</p>
+    <div class="parts">
+      <div class="part-col">
+        <div class="part-h"><span class="part-n">Část 1</span> Orientace a AI Kompas <span class="part-t">cca 60 min</span></div>
+        <div class="toc toc--col">
+          <button class="toc__item" data-goto="k1" type="button"><span class="toc__n">1</span><span class="toc__t">Proč chat nestačí</span><span class="toc__d">nekonečný chat, nový kolega</span></button>
+          <button class="toc__item" data-goto="k2" type="button"><span class="toc__n">2</span><span class="toc__t">Vaše dva balíčky</span><span class="toc__d">Kompas + Projektový start, co kam patří</span></button>
+          <button class="toc__item" data-goto="k3" type="button"><span class="toc__n">3</span><span class="toc__t">AI Kompas: první kroky</span><span class="toc__d">instalace, cvičení 1, filtr</span></button>
+        </div>
+      </div>
+      <div class="part-col">
+        <div class="part-h"><span class="part-n good">Část 2</span> Praktické použití <span class="part-t">cca 90 min</span></div>
+        <div class="toc toc--col">
+          <button class="toc__item" data-goto="k4" type="button"><span class="toc__n">4</span><span class="toc__t">Projektový start</span><span class="toc__d">most z Kompasu, zadání, založení, test, rytmus</span></button>
+          <button class="toc__item" data-goto="k5" type="button"><span class="toc__n">5</span><span class="toc__t">Pro pokročilé</span><span class="toc__d">plný projekt, dva prostory, oponentura</span></button>
+          <button class="toc__item" data-goto="k6" type="button"><span class="toc__n">6</span><span class="toc__t">Tahák a praxe</span><span class="toc__d">chyby, věty, prompty, kam co patří</span></button>
+        </div>
+      </div>
+    </div>
+    <div class="legend">
+      <span><span class="aha">Aha moment</span> místo, kde se mění pohled</span>
+      <span><span class="ex">Cvičení</span> teď to uděláte vy</span>
+      <span><span class="howto">Návod</span> postup krok za krokem</span>
+    </div>
+  </div>
+</section>
+
+<!-- PART 1 -->
+<section data-chapter="k1" class="slide title">
+  <div class="slide__inner">
+    <span class="eyebrow">Část 1 ze 2</span>
+    <h1>Orientace a AI Kompas</h1>
+    <p class="subtitle">Proč chat nestačí, jaké máte balíčky a jak s Kompasem vyřešit první problém.</p>
+    <div class="kicker">kapitoly 1–3 · cvičení 1 · cca 60 min</div>
+  </div>
+</section>
+
+<!-- 1 — NEKONEČNÝ CHAT -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 1 · Proč chat nestačí</div>
+    <h1>Nekonečný chat</h1>
+    <p class="subtitle">Většina lidí s AI pracuje takhle: jedno vlákno, všechno do něj, dokud to nezačne skřípat.</p>
+    <div class="grid grid-2" style="align-items:center">
+      <div class="chat">
+        <div class="lost f-fade" data-f="2">zadání se ztrácí ↑</div>
+        <div class="fadeTop f-fade" data-f="2"></div>
+        <div class="bub me pop" style="animation-delay:.1s">Potřebuju udělat analýzu dodavatelů, ale jen pro EU a jen s certifikací…</div>
+        <div class="bub ai pop" style="animation-delay:.4s">Jasně, tady je přehled…</div>
+        <div class="bub me pop" style="animation-delay:.7s">A ještě přidej ceny. A taky mi napiš mail šéfovi.</div>
+        <div class="bub ai pop" style="animation-delay:1s">Tady je mail…</div>
+        <div class="bub me pop" style="animation-delay:1.3s">Vrať se k té tabulce. Proč jsou tam firmy z Asie?</div>
+        <div class="bub ai pop" style="animation-delay:1.6s">Omlouvám se, upravím…</div>
+        <div class="bub me pop" style="animation-delay:1.9s">Říkal jsem jen EU! Už potřetí…</div>
+      </div>
+      <div>
+        <ul class="bullets" style="font-size:16px">
+          <li class="f" data-f="1">Po desítkách zpráv AI <strong>zapomíná zadání</strong> a protiřečí si.</li>
+          <li class="f" data-f="2">Kontext se <strong>opakuje pořád dokola</strong>.</li>
+          <li class="f" data-f="3">Míchají se úplně jiné úkoly v jednom vlákně.</li>
+          <li class="f" data-f="3">Kolega ani nový chat se v tom <strong>nevyzná</strong>.</li>
+          <li class="f" data-f="4">Závěr: <em>„AI na to není."</em></li>
+        </ul>
+        <div class="callout f" data-f="4" style="margin-top:18px">Problém není AI. Problém je, <strong>kde držíme informace</strong>.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 2 — CO VIDÍME U UŽIVATELŮ -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 1 · Proč chat nestačí</div>
+    <h1>Co vidíme u uživatelů</h1>
+    <p class="subtitle">Ze školení, průzkumů a konzultací: čím víc „agentní" nástroj, tím méně lidí ho používá. A paměť projektu zůstává v jednom chatu.</p>
+    <div class="grid grid-2" style="align-items:end">
+      <div class="ladder">
+        <div class="rung"><div class="bar f-fade" data-f="1" style="--h:92%"></div><div class="lbl">Chat</div><div class="sub">skoro všichni</div></div>
+        <div class="rung"><div class="bar f-fade" data-f="1" style="--h:45%;opacity:.8"></div><div class="lbl">Projekt</div><div class="sub">občas</div></div>
+        <div class="rung"><div class="bar f-fade" data-f="1" style="--h:20%;opacity:.6"></div><div class="lbl">Cowork</div><div class="sub">výjimečně</div></div>
+        <div class="rung"><div class="bar f-fade" data-f="1" style="--h:6%;opacity:.45"></div><div class="lbl">Code / Codex</div><div class="sub">skoro nikdo</div></div>
+      </div>
+      <div class="grid" style="gap:12px">
+        <div class="card f" data-f="2"><h3>Nepřipravují zadání</h3><p class="mini" style="margin:6px 0 0">Začnou psát dřív, než vědí, co chtějí, pro koho a kdy je hotovo.</p></div>
+        <div class="card f" data-f="3"><h3>Nerozumí agentní práci</h3><p class="mini" style="margin:6px 0 0">Neví, že AI se dá „zaučit" pravidly a soubory, ne jen úkolem.</p></div>
+        <div class="card f" data-f="4"><h3>Paměť je zavřená v chatu</h3><p class="mini" style="margin:6px 0 0">Nikdo jiný se k práci nedostane a nový chat začíná od nuly.</p></div>
+      </div>
+    </div>
+    <p class="footnote" style="margin-top:14px">Grafika je ilustrativní, vyjadřuje poměr, ne přesná čísla.</p>
+  </div>
+</section>
+
+<!-- 5 — ANALOGIE -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 1 · Proč chat nestačí</div>
+    <span class="aha">Aha moment</span>
+    <h1>AI je nový kolega, kterého zaučujete</h1>
+    <p class="subtitle">Rozdíl není v tom, jak chytrý je. Rozdíl je v tom, co od vás dostane.</p>
+    <div class="vs">
+      <div class="card">
+        <h3>„Udělej to."</h3>
+        <div class="chaos" style="margin-top:10px">
+          <span style="left:6%;top:10%">co přesně?</span>
+          <span style="left:52%;top:4%">pro koho?</span>
+          <span style="left:20%;top:42%">jaký formát?</span>
+          <span style="left:62%;top:38%">co už víme?</span>
+          <span style="left:8%;top:74%">kde jsme skončili?</span>
+          <span style="left:56%;top:72%">co je hotovo?</span>
+        </div>
+        <p class="mini">Hádá, ptá se, dělá chyby, a příště začíná od nuly.</p>
+      </div>
+      <div class="mid">→</div>
+      <div class="card">
+        <h3>Složka pro kolegu</h3>
+        <div class="folder" style="margin-top:12px">
+          <div class="file f" data-f="1"><div class="fname">zadání</div><p>proč to děláme, cíl, co je hotovo</p></div>
+          <div class="file f" data-f="2"><div class="fname">pravidla</div><p>jak to u nás chodí, co se nesmí</p></div>
+          <div class="file good f" data-f="3"><div class="fname">předávací lístek</div><p>kde jsme skončili, co je dál</p></div>
+        </div>
+        <p class="mini" style="margin-top:10px">Pracuje samostatně a ve správném směru.</p>
+      </div>
+    </div>
+    <p class="big-quote f" data-f="4" style="text-align:center;margin-top:22px">Chat není paměť. <span style="color:var(--accent-strong)">Paměť jsou soubory.</span></p>
+  </div>
+</section>
+
+<!-- NEW:balicky -->
+<section data-chapter="k2" class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 2 · Vaše dva balíčky</div>
+    <h1>Dva balíčky, jedna cesta</h1>
+    <p class="subtitle"><strong>AI Kompas</strong> je vstupní brána pro každý pracovní problém. <strong>Projektový start</strong> použijete, když Kompas řekne, že jde o dlouhodobou práci.</p>
+    <svg class="dia" viewBox="0 0 1000 340">
+      <g><rect x="10" y="135" width="150" height="70" rx="35" class="box"/><text x="85" y="166" text-anchor="middle" font-size="15">Pracovní</text><text x="85" y="186" text-anchor="middle" font-size="15">problém</text></g>
+      <path class="ln acc draw" data-f="1" style="--len:90" d="M160 170 H230"/>
+      <g class="f pulse" data-f="1"><rect x="230" y="110" width="200" height="120" rx="18" class="box acc"/>
+        <text x="330" y="150" text-anchor="middle" class="mono accfill" font-size="11">BALÍČEK 1</text>
+        <text x="330" y="176" text-anchor="middle" font-size="19" style="font-family:var(--font-display)">AI Kompas</text>
+        <text x="330" y="200" text-anchor="middle" font-size="12" class="soft">kde má práce bydlet?</text></g>
+      <path class="ln draw" data-f="2" style="--len:220" d="M430 140 C 490 80, 520 55, 580 55"/>
+      <path class="ln draw" data-f="2" style="--len:160" d="M430 170 H580"/>
+      <path class="ln acc draw" data-f="3" style="--len:220" d="M430 200 C 490 260, 520 285, 580 285"/>
+      <g class="f" data-f="2"><rect x="580" y="25" width="190" height="60" rx="12" class="box"/><text x="598" y="52" font-size="14">Jednorázovka</text><text x="598" y="72" font-size="12" class="soft">→ Chat (handoff)</text></g>
+      <g class="f" data-f="2"><rect x="580" y="140" width="190" height="60" rx="12" class="box"/><text x="598" y="167" font-size="14">Opakovaná práce</text><text x="598" y="187" font-size="12" class="soft">→ Project (handoff)</text></g>
+      <g class="f" data-f="3"><rect x="580" y="255" width="190" height="60" rx="12" class="box acc"/><text x="598" y="282" font-size="14">Project + fáze, týdny</text><text x="598" y="302" font-size="12" class="accfill">posoudíte vy</text></g>
+      <path class="ln acc draw" data-f="4" style="--len:80" d="M770 285 H830"/>
+      <g class="f pulse" data-f="4"><rect x="830" y="225" width="160" height="120" rx="18" class="box good"/>
+        <text x="910" y="258" text-anchor="middle" class="mono goodfill" font-size="11">BALÍČEK 2</text>
+        <text x="910" y="284" text-anchor="middle" font-size="17" style="font-family:var(--font-display)">Projektový</text>
+        <text x="910" y="306" text-anchor="middle" font-size="17" style="font-family:var(--font-display)">start</text>
+        <text x="910" y="330" text-anchor="middle" font-size="11.5" class="soft">zadání → projekt</text></g>
+    </svg>
+    <div class="callout good f" data-f="4" style="margin-top:14px">Máte Kompas? <strong>Začněte v něm.</strong> Nemáte? Začněte rovnou <code>01-PRIPRAVA-ZADANI.md</code>. Jak přesně z Kompasu přejít do projektu, ukazuje slide „Přechod“ na konci části 1.</div>
+  </div>
+</section>
+
+<!-- NEW:cokam -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 2 · Vaše dva balíčky</div>
+    <span class="howto">Návod</span>
+    <h1 style="margin-top:8px">Co kam patří</h1>
+    <p class="subtitle">Soubory z obou balíčků, každý má jedno místo. Nemusíte si to pamatovat, tahle tabulka je na konci i v taháku.</p>
+    <table class="deck-table">
+      <tr><th>Soubor</th><th>Balíček</th><th>Kam ho vložíte</th><th>Kdy</th></tr>
+      <tr class="f" data-f="1"><td><code>runtime-kernel.md</code></td><td>AI Kompas</td><td>Project „AI pracovní kompas“ → pole <strong>Instructions</strong></td><td>jednou</td></tr>
+      <tr class="f" data-f="1"><td><code>AI-pracovni-kompas.md</code> + <code>product-truth.yaml</code></td><td>AI Kompas</td><td>stejný Project → <strong>Project knowledge</strong> (Add text content)</td><td>jednou</td></tr>
+      <tr class="f" data-f="2"><td><code>01-PRIPRAVA-ZADANI.md</code></td><td>Projektový start</td><td>nový chat, „Začínáme“, nebo s handoffem z Kompasu</td><td>u každého dlouhodobého projektu</td></tr>
+      <tr class="f" data-f="3"><td><code>PROJEKT-START.md</code></td><td>vznikne sám</td><td>složka v <strong>Coworku</strong>, ve které je jen tento soubor, nebo nový Project</td><td>jednou na projekt</td></tr>
+      <tr class="f" data-f="4"><td><code>00-PRUVODCE</code> · <code>02-PROVOZ</code></td><td>Projektový start</td><td>nikam, jsou pro vás ke čtení</td><td>když si nevíte rady</td></tr>
+    </table>
+    <div class="callout f" data-f="4" style="margin-top:16px;display:flex;align-items:center;gap:16px;justify-content:space-between"><span>Balíčky stahujte vždy z jednoho místa, ze složky „AI balíčky“. Je tam aktuální verze. Neposílejte si je mailem, pak nikdo neví, kdo má jakou.</span><a class="dl" data-link="balicky" target="_blank" rel="noopener">Otevřít AI balíčky ↗</a></div>
+  </div>
+</section>
+
+<!-- NEW:install -->
+<section data-chapter="k3" class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 3 · AI Kompas: první kroky</div>
+    <span class="howto">Návod</span>
+    <h1 style="margin-top:8px">Instalace Kompasu za 5 minut</h1>
+    <p class="subtitle">Funguje na claude.ai, stačí i free účet. Nic se neinstaluje do počítače.</p>
+    <ol class="steps">
+      <li class="f" data-f="1"><span class="steps__n">1</span><div><strong>Projects → New project</strong>, název „AI pracovní kompas“.</div></li>
+      <li class="f" data-f="2"><span class="steps__n">2</span><div><strong>Instructions</strong> → vložte celý obsah <code>runtime-kernel.md</code> → uložit.</div></li>
+      <li class="f" data-f="3"><span class="steps__n">3</span><div><strong>Project knowledge → + → Add text content</strong>, dvakrát: <code>AI-pracovni-kompas.md</code> a <code>product-truth.yaml</code> (Title = název souboru, Content = celý obsah).</div></li>
+      <li class="f" data-f="4"><span class="steps__n">4</span><div>Nový chat v tomto Projectu → napište <strong>„Začínáme“</strong>.</div></li>
+    </ol>
+    <div class="callout warn f" data-f="5">Nejčastější chyba: kernel nahrajete jako soubor do knowledge místo do <strong>Instructions</strong>. Kompas pak nefunguje jako průvodce. Kernel patří vždy do pole Instructions.</div>
+  </div>
+</section>
+
+<!-- NEW:cviceni1 -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 3 · AI Kompas: první kroky</div>
+    <span class="ex">Cvičení 1 · 15 minut</span> <span class="aha">Aha moment</span>
+    <h1 style="margin-top:8px">Váš první problém přes Kompas</h1>
+    <p class="subtitle">Vezměte něco, co reálně řešíte tento týden. Ne vymyšlený příklad.</p>
+    <div class="grid grid-2" style="align-items:start">
+      <div>
+        <div class="prompt f" data-f="1"><div class="prompt__h">1 · Napište do Kompasu</div><pre>Začínáme</pre><button class="copy" type="button">Kopírovat</button></div>
+        <div class="prompt f" data-f="2"><div class="prompt__h">2 · Popište problém vlastními slovy</div><pre>Každý měsíc dělám přehled … a pokaždé to vysvětluju znovu.</pre><button class="copy" type="button">Kopírovat</button></div>
+        <p class="mini f" data-f="3">3 · Nechte se dovést až k <strong>handoffu</strong>: hotové instrukce, první zpráva, kritéria hotovo.</p>
+      </div>
+      <div class="chat" style="height:auto">
+        <div class="bub ai f" data-f="2">To zní jako opakovaný měsíční report nad měnícími se daty. Pravděpodobně vlastní Project se stálými pravidly. Sedí to?</div>
+        <div class="bub me f" data-f="3">Jo, přesně tak.</div>
+        <div class="bub ai f" data-f="3">Tady je handoff: název Projectu, instrukce k vložení, první zpráva…</div>
+      </div>
+    </div>
+    <div class="callout good f" data-f="4"><strong>Aha:</strong> Kompas nepřednáší o funkcích. Ptá se na <em>váš</em> problém, rychle dojde k doporučení a dá vám hotový handoff. Na konci nabídne <strong>checkpoint</strong>. Uložte si ho, je pro návrat do Kompasu.</div>
+  </div>
+</section>
+
+<!-- 6 — FILTR -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 3 · AI Kompas: první kroky</div>
+    <h1>Potřebuju vůbec projekt?</h1>
+    <p class="subtitle">Ne všechno je projekt. Kompas rozhodne chat, nebo Project. Tenhle filtr jde o krok dál: jak velký projekt to je.</p>
+    <svg class="dia" viewBox="0 0 1000 330">
+      <g><rect x="20" y="130" width="200" height="70" rx="35" class="box acc"/><text x="120" y="171" text-anchor="middle" font-size="16" style="font-family:var(--font-display)">Můj úkol</text></g>
+      <path class="ln acc draw" data-f="1" style="--len:320" d="M220 165 C 300 165, 300 55, 400 55"/>
+      <path class="ln acc draw" data-f="2" style="--len:200" d="M220 165 H400"/>
+      <path class="ln acc draw" data-f="3" style="--len:320" d="M220 165 C 300 165, 300 275, 400 275"/>
+      <g class="f" data-f="1"><rect x="400" y="20" width="330" height="70" rx="12" class="box"/><text x="418" y="50" font-size="14">Zvládnu to za jedno sezení</text><text x="418" y="72" font-size="14" class="soft">a nebudu se k tomu vracet?</text></g>
+      <g class="f" data-f="2"><rect x="400" y="130" width="330" height="70" rx="12" class="box"/><text x="418" y="160" font-size="14">Víc sezení, potřebuju</text><text x="418" y="182" font-size="14" class="soft">navazovat, pracuju sám?</text></g>
+      <g class="f" data-f="3"><rect x="400" y="240" width="330" height="70" rx="12" class="box"/><text x="418" y="270" font-size="14">Fáze, rozhodnutí, víc lidí</text><text x="418" y="292" font-size="14" class="soft">nebo nástrojů, týdny?</text></g>
+      <path class="ln draw" data-f="1" style="--len:60" d="M730 55 H780"/>
+      <path class="ln draw" data-f="2" style="--len:60" d="M730 165 H780"/>
+      <path class="ln draw" data-f="3" style="--len:60" d="M730 275 H780"/>
+      <g class="f" data-f="1"><rect x="780" y="25" width="200" height="60" rx="12" class="box"/><text x="880" y="52" text-anchor="middle" font-size="16" style="font-family:var(--font-display)">Chat</text><text x="880" y="72" text-anchor="middle" font-size="12" class="soft">stačí dobré zadání</text></g>
+      <g class="f" data-f="2"><rect x="780" y="135" width="200" height="60" rx="12" class="box good"/><text x="880" y="162" text-anchor="middle" font-size="16" style="font-family:var(--font-display)">Lehký projekt</text><text x="880" y="182" text-anchor="middle" font-size="12" class="soft">2 soubory · výchozí</text></g>
+      <g class="f" data-f="3"><rect x="780" y="245" width="200" height="60" rx="12" class="box acc"/><text x="880" y="272" text-anchor="middle" font-size="16" style="font-family:var(--font-display)">Plný projekt</text><text x="880" y="292" text-anchor="middle" font-size="12" class="soft">5 souborů</text></g>
+    </svg>
+    <div class="callout f" data-f="4">Nevíte? <strong>Začněte lehkým.</strong> Na plný se dá kdykoli rozšířit. Chat na rychlé věci je správná volba, ne chyba.</div>
+  </div>
+</section>
+
+<!-- PŘECHOD KOMPAS → PROJEKT -->
+<section class="slide">
+  <div class="slide__inner" style="max-width:1180px">
+    <div class="slide__num">Přechod · z části 1 do části 2</div>
+    <span class="aha">Aha moment</span>
+    <h1 style="margin-top:8px">Z Kompasu do projektu: jak přesně</h1>
+    <p class="subtitle">Kompas vám dá handoff. Když práce bude trvat týdny a má fáze, handoff nezakládáte. Přenesete ho dál a z něj vznikne řízený projekt.</p>
+    <div class="handover">
+      <div class="hv f" data-f="1">
+        <div class="hv__tag acc">1 · AI Kompas</div>
+        <div class="hv__win">
+          <div class="bub ai">Doporučuji <strong>Project</strong>. Tady je handoff:</div>
+          <div class="hv__block"><span>## Handoff: Výzkum AI v podpoře</span><span>Typ domova: Project</span><span>Custom instructions: …</span><span>Kritéria hotovo: …</span></div>
+        </div>
+        <p class="hv__p">Práce má fáze a potrvá týdny?<br><strong>Handoff zkopírujte.</strong></p>
+      </div>
+      <div class="hv__arrow f-fade" data-f="2"><svg viewBox="0 0 60 20"><path class="ln acc flow" stroke-dasharray="6 6" d="M2 10 H52"/><path d="M50 4 L58 10 L50 16" fill="none" stroke="var(--accent)" stroke-width="2"/></svg><span>kopírovat</span></div>
+      <div class="hv f" data-f="2">
+        <div class="hv__tag">2 · Nový chat</div>
+        <div class="hv__win">
+          <div class="hv__file">01-PRIPRAVA-ZADANI.md</div>
+          <div class="bub me">Tady je handoff z AI Kompasu… Převezmi, co je známé.<br><em>[handoff]</em></div>
+          <div class="bub ai">Z handoffu mám cíl a pravidla. Doptám se na fáze a zdroje.</div>
+        </div>
+        <p class="hv__p">Kouč se ptá <strong>jen na to, co chybí</strong>.</p>
+      </div>
+      <div class="hv__arrow f-fade" data-f="3"><svg viewBox="0 0 60 20"><path class="ln acc flow" stroke-dasharray="6 6" d="M2 10 H52"/><path d="M50 4 L58 10 L50 16" fill="none" stroke="var(--accent)" stroke-width="2"/></svg><span>uložit</span></div>
+      <div class="hv f" data-f="3">
+        <div class="hv__tag">3 · Soubor</div>
+        <div class="hv__win hv__win--doc">
+          <div class="hv__file">PROJEKT-START.md</div>
+          <div class="hv__part a">A · pokyny pro agenta</div>
+          <div class="hv__part b">B · zadání</div>
+          <div class="hv__part c">C · šablony</div>
+        </div>
+        <p class="hv__p">Uložte do <strong>prázdné složky</strong> na disku.</p>
+      </div>
+      <div class="hv__arrow f-fade" data-f="4"><svg viewBox="0 0 60 20"><path class="ln good flow" stroke-dasharray="6 6" d="M2 10 H52"/><path d="M50 4 L58 10 L50 16" fill="none" stroke="var(--good)" stroke-width="2"/></svg><span>Add folder</span></div>
+      <div class="hv f" data-f="4">
+        <div class="hv__tag good">4 · Cowork</div>
+        <div class="hv__win">
+          <div class="hv__tree"><span>▸ vyzkum-ai-podpora/</span><span>· BRIEF.md</span><span>· WORKLOG.md</span><span>· AGENTS.md</span><span>· CLAUDE.md</span></div>
+          <div class="bub ai">Projekt založen. Cíl: … Tři kontrolní otázky: …</div>
+        </div>
+        <p class="hv__p"><strong>Řízený projekt.</strong> Dál jen „Pokračujeme“ a „Zapiš stav“.</p>
+      </div>
+    </div>
+    <div class="callout good f" data-f="5" style="margin-top:18px">Opakovaná práce se stejnými pravidly (měsíční report) tímhle přechodem <strong>neprochází</strong>. Kompasův handoff rovnou založíte jako Project. Přesně to si vyzkoušíte v části 2.</div>
+  </div>
+</section>
+
+<!-- PART 2 -->
+<section data-chapter="k4" class="slide title">
+  <div class="slide__inner">
+    <span class="eyebrow" style="color:var(--good)">Část 2 ze 2</span>
+    <h1>Praktické použití</h1>
+    <p class="subtitle">Od nápadu k řízenému projektu: zadání, založení, test a rytmus práce na vašem vlastním úkolu.</p>
+    <div class="kicker">kapitoly 4–6 · cvičení 2–4 · cca 90 min · cvičíme v Coworku</div>
+  </div>
+</section>
+
+<!-- MOST -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 4 · Projektový start</div>
+    <span class="aha">Aha moment</span> <span class="howto">Návod</span>
+    <h1 style="margin-top:8px">Kompasův Project není automaticky Projektový start</h1>
+    <p class="subtitle">Kompas rozhoduje jen chat, nebo Project. Jestli jde o dlouhodobý projekt, posoudíte vy podle toho, co vám doporučil.</p>
+    <table class="deck-table">
+      <tr><th>Kompas doporučil</th><th>Práce je…</th><th>Co udělat</th></tr>
+      <tr class="f" data-f="1"><td>Chat</td><td>jednorázovka</td><td>použijte jeho handoff</td></tr>
+      <tr class="f" data-f="2"><td>Project</td><td>opakovaná se stejnými pravidly, např. <strong>měsíční report</strong></td><td>použijte jeho handoff, Projektový start nepotřebujete</td></tr>
+      <tr class="f" data-f="3"><td>Project</td><td>s <strong>fázemi a rozhodnutími</strong>, na týdny, např. výzkum konkurence</td><td>handoff <strong>nezakládejte</strong>, vložte ho do chatu s <code>01-PRIPRAVA-ZADANI.md</code></td></tr>
+    </table>
+    <div class="prompt f" data-f="4" style="margin-top:16px"><div class="prompt__h">Most: vložte do nového chatu spolu s 01-PRIPRAVA-ZADANI.md</div><pre>Tady je handoff z AI Kompasu. Práce bude mít fáze a rozhodnutí, proto jdu přes Projektový start. Převezmi, co už je známé, a doptej se jen na zbytek.
+
+[sem vložte celý handoff z Kompasu]</pre><button class="copy" type="button">Kopírovat</button></div>
+    <p class="mini f" data-f="4">Kompasův checkpoint (<code>compass_checkpoint_v1</code>) sem nepatří. Ten si nechte pro návrat do Kompasu.</p>
+  </div>
+</section>
+
+<!-- 3 — CO FUNGOVALO -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 4 · Projektový start · proč soubory</div>
+    <h1>Co fungovalo na velkém projektu</h1>
+    <p class="subtitle">Na vlastním dlouhém vývojovém projektu (rezervační aplikace, měsíce práce, desítky sezení) se osvědčilo jedno: <strong>paměť v souborech s jasnou rolí</strong>.</p>
+    <svg class="dia" viewBox="0 0 1000 360">
+      <!-- spoje -->
+      <path class="ln acc draw" data-f="1" style="--len:260" d="M500 180 L180 70"/>
+      <path class="ln acc draw" data-f="1" style="--len:260" d="M500 180 L820 70"/>
+      <path class="ln acc draw" data-f="2" style="--len:260" d="M500 180 L180 290"/>
+      <path class="ln acc draw" data-f="2" style="--len:260" d="M500 180 L820 290"/>
+      <!-- střed -->
+      <g class="pulse"><rect x="410" y="140" width="180" height="80" rx="40" class="box acc"/>
+        <text x="500" y="176" text-anchor="middle" font-size="18" style="font-family:var(--font-display)">AI agent</text>
+        <text x="500" y="198" text-anchor="middle" font-size="12" class="soft">na začátku čte soubory</text></g>
+      <!-- soubory -->
+      <g class="f" data-f="1"><rect x="40" y="30" width="280" height="80" rx="12" class="box"/>
+        <text x="60" y="60" class="mono accfill" font-size="14">AGENTS.md</text>
+        <text x="60" y="84" font-size="14" class="soft">role AI, pravidla, postup</text></g>
+      <g class="f" data-f="1"><rect x="680" y="30" width="280" height="80" rx="12" class="box"/>
+        <text x="700" y="60" class="mono accfill" font-size="14">DOKUMENTACE.md</text>
+        <text x="700" y="84" font-size="14" class="soft">co je hotové a rozhodnuté</text></g>
+      <g class="f" data-f="2"><rect x="40" y="250" width="280" height="80" rx="12" class="box"/>
+        <text x="60" y="280" class="mono accfill" font-size="14">WORKLOG.md</text>
+        <text x="60" y="304" font-size="14" class="soft">rozdělaná práce, další krok</text></g>
+      <g class="f" data-f="2"><rect x="680" y="250" width="280" height="80" rx="12" class="box"/>
+        <text x="700" y="280" class="mono accfill" font-size="14">POZNAMKY.md</text>
+        <text x="700" y="304" font-size="14" class="soft">nápady mimo aktuální krok</text></g>
+    </svg>
+    <div class="grid grid-3" style="margin-top:6px">
+      <div class="callout f" data-f="3">Každý soubor má <strong>jednu roli</strong> a jasné pravidlo, kdy se mění.</div>
+      <div class="callout f" data-f="3">AI je <strong>spolupracovník</strong>: upozorní na rozpor, nehádá.</div>
+      <div class="callout good f" data-f="4">Otázka: <strong>jde to převést na kohokoli</strong>, nejen na vývojáře?</div>
+    </div>
+  </div>
+</section>
+
+<!-- 7 — LEHKÝ PROJEKT -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 4 · Projektový start</div>
+    <h1>Lehký projekt: dva soubory</h1>
+    <p class="subtitle">Dva soubory, které udržujete. Jeden říká <em>kam jdeme</em>, druhý <em>kde jsme</em>.</p>
+    <div class="grid grid-2">
+      <div class="file f" data-f="1" style="padding:20px 22px">
+        <div class="fname">BRIEF.md</div>
+        <div class="fhuman">Zadání od šéfa</div>
+        <p>Cíl jednou větou, pro koho, co je hotovo, co vědomě <strong>neděláme</strong>, pravidla, která platí vždy. Mění se skoro nikdy.</p>
+        <div class="kv" style="margin-top:12px">
+          <span class="k">vývoj</span><span>„Rezervační aplikace pro členy klubu, bez plateb v appce"</span>
+          <span class="k">výzkum</span><span>„Jak konkurence v EU používá AI v podpoře. Jen ověřené zdroje."</span>
+        </div>
+      </div>
+      <div class="file good f" data-f="2" style="padding:20px 22px">
+        <div class="fname">WORKLOG.md</div>
+        <div class="fhuman">Předávací lístek na konci směny</div>
+        <p>Co je rozdělané, co čeká na odpověď, <strong>další krok</strong>, nápady na později. Přepisuje se na konci každé práce.</p>
+        <div class="kv" style="margin-top:12px">
+          <span class="k">vývoj</span><span>„Rozdělaná obrazovka rezervace, další krok: storno"</span>
+          <span class="k">výzkum</span><span>„Zpracované 3 z 8 firem, další: firma D"</span>
+        </div>
+      </div>
+    </div>
+    <div class="file tech f" data-f="3" style="margin-top:14px;padding:10px 16px"><span class="fname">AGENTS.md</span> <span class="mini">— krátký technický soubor, díky kterému agent ví, že má číst BRIEF a WORKLOG. Řeší ho agent, vy ne.</span></div>
+  </div>
+</section>
+
+<!-- 8 — CELÉ FLOW -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 4 · Projektový start</div>
+    <h1>Od nápadu k řízenému projektu</h1>
+    <p class="subtitle">Celá cesta v sedmi krocích. Vy přemýšlíte a rozhodujete, AI koučuje, zakládá a hlídá.</p>
+    <div class="pipe">
+      <div class="node f-fade" data-f="1"><div class="wire"></div><div class="dot">1</div><h3>Nápad</h3><p>klidně chaoticky, vlastními slovy</p></div>
+      <div class="node f-fade" data-f="2"><div class="wire"></div><div class="dot">2</div><h3>Kouč zadání</h3><p>AI se ptá, nabízí varianty, kontroluje kvalitu</p><span class="tool">01-PRIPRAVA</span></div>
+      <div class="node f-fade" data-f="3"><div class="wire"></div><div class="dot">3</div><h3>PROJEKT-START</h3><p>jeden soubor: zadání + pokyny pro agenta</p><span class="tool">.md</span></div>
+      <div class="node f-fade" data-f="4"><div class="wire"></div><div class="dot">4</div><h3>Agent zakládá</h3><p>vytvoří soubory projektu</p><span class="tool">Cowork · Code</span></div>
+      <div class="node f-fade" data-f="5"><div class="wire"></div><div class="dot">5</div><h3>Test</h3><p>„Jaký je cíl, pravidlo, další krok?"</p></div>
+      <div class="node f-fade" data-f="6"><div class="wire"></div><div class="dot">6</div><h3>Rekapitulace</h3><p>shrnutí, 3 kontrolní otázky, první úkol</p></div>
+      <div class="node last f-fade" data-f="7"><div class="wire"></div><div class="dot">✓</div><h3>Řízená práce</h3><p>rytmus: pokračujeme · zapiš stav</p></div>
+    </div>
+    <div class="grid grid-3" style="margin-top:34px">
+      <div class="callout f" data-f="3"><strong>Kroky 1–3</strong> v jakémkoli chatu (Claude, ChatGPT, Gemini).</div>
+      <div class="callout f" data-f="5"><strong>Kroky 4–6</strong> v nástroji, kde projekt bude žít.</div>
+      <div class="callout good f" data-f="7"><strong>Krok 7</strong> se opakuje, dokud není hotovo.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 9 — KOUČ ZADÁNÍ -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 4 · Projektový start</div>
+    <span class="aha">Aha moment</span>
+    <h1>AI vás dokoučuje k zadání</h1>
+    <p class="subtitle">Vložíte <code>01-PRIPRAVA-ZADANI.md</code> do chatu a napíšete „Začínáme". AI vede rozhovor po fázích. U lehkého projektu se fáze 3 přeskočí a ze 4 zbude jen volba nástroje.</p>
+    <div class="phases">
+      <div class="ph hl f-fade" data-f="1"><div class="n">0</div><h3>Start a filtr</h3><p>co chcete, úroveň, velikost</p></div>
+      <div class="ph hl f-fade" data-f="1"><div class="n">1</div><h3>Co a proč</h3><p>problém, pro koho, výsledek</p></div>
+      <div class="ph hl f-fade" data-f="1"><div class="n">2</div><h3>Věcná podstata</h3><p>zdroje, data, kritéria, rozsah</p></div>
+      <div class="ph full-only skip f-fade" data-f="2"><div class="n">3</div><h3>Pravidla a fáze</h3><p>jen plný projekt</p></div>
+      <div class="ph hl f-fade" data-f="1"><div class="n">4</div><h3>Práce s AI</h3><p>u lehkého jen nástroj</p></div>
+      <div class="ph hl f-fade" data-f="1"><div class="n">5</div><h3>Kontrola</h3><p>tabulka ✅ / ⚠️</p></div>
+      <div class="ph hl f-fade" data-f="1"><div class="n">6</div><h3>Výstup</h3><p>PROJEKT-START.md</p></div>
+    </div>
+    <div class="grid grid-2" style="margin-top:20px;align-items:start">
+      <div class="chat" style="height:auto">
+        <div class="bub ai f" data-f="3"><strong>Hypotéza místo výslechu:</strong> „Zní to, že je to hlavně podklad pro rozhodnutí vedení, sedí to?"</div>
+        <div class="bub ai f" data-f="4"><strong>Varianty místo prázdného pole:</strong> „A) nástroj pro tým, B) podklad pro vedení, C) experiment. Co z toho?"</div>
+        <div class="bub ai f" data-f="5"><strong>Kritika:</strong> „Tohle je na dva týdny moc. Navrhuju první výstup jen pro 3 firmy."</div>
+      </div>
+      <div class="card f" data-f="5">
+        <h3>Podle typu projektu se ptá jinak</h3>
+        <div class="kv" style="margin-top:10px">
+          <span class="k">výzkum</span><span>přesná otázka, zdroje, citace, fakt vs. odhad</span>
+          <span class="k">nákup</span><span>co se vybírá, kritéria, kdo schvaluje</span>
+          <span class="k">vývoj</span><span>uživatel, první funkční verze</span>
+          <span class="k">školení</span><span>publikum, co má umět po konci</span>
+          <span class="k">proces</span><span>jak to funguje dnes, co se mění</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- NEW:cviceni2 -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 4 · Projektový start</div>
+    <span class="ex">Cvičení 2 · 25 minut</span>
+    <h1 style="margin-top:8px">Připravte si zadání</h1>
+    <p class="subtitle">Pro práci, která potrvá týdny. Kdo zatím takovou nemá, vezme si „projekt“ z kolegova cvičení.</p>
+    <div class="grid grid-2" style="align-items:start">
+      <div>
+        <div class="prompt f" data-f="1"><div class="prompt__h">Přišli jste z Kompasu</div><pre>Tady je handoff z AI Kompasu. Práce bude mít fáze a rozhodnutí, proto jdu přes Projektový start. Převezmi, co už je známé, a doptej se jen na zbytek.
+
+[handoff]</pre><button class="copy" type="button">Kopírovat</button></div>
+        <div class="prompt f" data-f="2"><div class="prompt__h">Začínáte rovnou</div><pre>Začínáme</pre><button class="copy" type="button">Kopírovat</button></div>
+        <p class="mini f" data-f="2">V obou případech nejdřív vložte nebo nahrajte <code>01-PRIPRAVA-ZADANI.md</code> do nového chatu.</p>
+      </div>
+      <div class="card f" data-f="3">
+        <h3>Na co si dát pozor</h3>
+        <ul class="bullets" style="margin-top:10px;font-size:14px">
+          <li>Odpovídejte klidně „nevím“. AI to zapíše jako otevřenou otázku.</li>
+          <li>Trvejte na řádku <strong>„mimo rozsah“</strong>. Bez něj se projekt rozroste.</li>
+          <li>Na konci si nechte ukázat <strong>kontrolní tabulku ✅/⚠️</strong>.</li>
+          <li>Výsledek: soubor <code>PROJEKT-START.md</code>. Uložte si ho.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 10 — PROJEKT-START -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 4 · Projektový start</div>
+    <h1>Jeden soubor, který založí celý projekt</h1>
+    <p class="subtitle">Výsledek koučinku. Je to zadání i návod pro agenta v jednom, takže ho můžete vložit kamkoli.</p>
+    <div class="grid grid-2" style="align-items:center">
+      <div class="doc">
+        <div class="mono" style="font-family:var(--font-mono);font-size:13px;color:var(--ink-faint);margin-bottom:10px">PROJEKT-START.md</div>
+        <div class="part a f" data-f="1"><h3>A · Pokyny pro agenta</h3><p>Zkontroluj složku, vytvoř soubory, udělej test a rekapitulaci. Práci nezačínej.</p></div>
+        <div class="part b f" data-f="2"><h3>B · Zadání</h3><p>Cíl, pro koho, rozsah, pravidla, kroky, otevřené otázky. Jen to, co jste potvrdili.</p></div>
+        <div class="part c f" data-f="3"><h3>C · Šablony</h3><p>Kostry souborů, které agent vyplní z části B.</p></div>
+      </div>
+      <svg class="dia" viewBox="0 0 440 320">
+        <path class="ln acc flow" stroke-dasharray="8 8" d="M10 160 H150"/>
+        <g class="f" data-f="4"><rect x="150" y="110" width="130" height="100" rx="16" class="box acc"/><text x="215" y="155" text-anchor="middle" font-size="15" style="font-family:var(--font-display)">agent</text><text x="215" y="177" text-anchor="middle" font-size="11.5" class="soft">„proveď část A"</text></g>
+        <path class="ln draw" data-f="4" style="--len:200" d="M280 140 C 330 100, 340 50, 380 45"/>
+        <path class="ln draw" data-f="4" style="--len:200" d="M280 160 H380"/>
+        <path class="ln draw" data-f="4" style="--len:200" d="M280 180 C 330 220, 340 270, 380 275"/>
+        <g class="f" data-f="4"><rect x="380" y="25" width="60" height="40" rx="8" class="box"/><text x="410" y="50" text-anchor="middle" class="mono" font-size="10.5">BRIEF</text></g>
+        <g class="f" data-f="4"><rect x="380" y="140" width="60" height="40" rx="8" class="box good"/><text x="410" y="165" text-anchor="middle" class="mono" font-size="10">WORKLOG</text></g>
+        <g class="f" data-f="4"><rect x="380" y="255" width="60" height="40" rx="8" class="box"/><text x="410" y="280" text-anchor="middle" class="mono" font-size="10">AGENTS</text></g>
+      </svg>
+    </div>
+  </div>
+</section>
+
+<!-- 11 — NÁSTROJE -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 4 · Projektový start</div>
+    <h1>Stejný systém, jiný zapisovatel</h1>
+    <p class="subtitle">Soubory a rytmus jsou všude stejné. Liší se jen to, <strong>kdo zapisuje stav</strong>: agent, nebo vy.</p>
+    <svg class="dia" viewBox="0 0 1000 330">
+      <!-- střed -->
+      <g class="pulse"><rect x="380" y="105" width="240" height="120" rx="18" class="box good"/>
+        <text x="500" y="148" text-anchor="middle" font-size="17" style="font-family:var(--font-display)">Projekt</text>
+        <text x="500" y="172" text-anchor="middle" class="mono" font-size="12">BRIEF · WORKLOG</text>
+        <text x="500" y="192" text-anchor="middle" class="mono soft" font-size="11">(+ DECISIONS · NOTES)</text></g>
+      <!-- levá: agent -->
+      <g class="f" data-f="1"><rect x="20" y="40" width="270" height="250" rx="16" class="box acc"/>
+        <text x="40" y="72" font-size="16" style="font-family:var(--font-display)">Agent zapisuje sám</text>
+        <text x="40" y="104" font-size="13.5" class="soft">Claude Cowork</text>
+        <text x="40" y="128" font-size="13.5" class="soft">Claude Code</text>
+        <text x="40" y="152" font-size="13.5" class="soft">Codex</text>
+        <text x="40" y="176" font-size="13.5" class="soft">Gemini CLI · Antigravity</text>
+        <text x="40" y="216" font-size="12.5" class="accfill">„Zapiš stav" → agent</text>
+        <text x="40" y="236" font-size="12.5" class="accfill">přepíše WORKLOG ve složce</text>
+        <text x="40" y="270" class="mono faint" font-size="11">doporučeno</text></g>
+      <path class="ln acc flow" data-f="1" stroke-dasharray="8 8" d="M290 165 H380"/>
+      <!-- pravá: ručně -->
+      <g class="f" data-f="2"><rect x="710" y="40" width="270" height="250" rx="16" class="box"/>
+        <text x="730" y="72" font-size="16" style="font-family:var(--font-display)">Zapisujete vy</text>
+        <text x="730" y="104" font-size="13.5" class="soft">Claude Project</text>
+        <text x="730" y="128" font-size="13.5" class="soft">ChatGPT Project</text>
+        <text x="730" y="152" font-size="13.5" class="soft">Gemini Gem · chat</text>
+        <text x="730" y="184" font-size="12.5" class="soft">Pravidla → instrukce projektu</text><text x="730" y="200" font-size="11.5" class="faint">obyčejný chat: balíček pro návrat</text>
+        <text x="730" y="216" font-size="12.5" class="accfill">„Zapiš stav" → AI vypíše</text>
+        <text x="730" y="236" font-size="12.5" class="accfill">STAV PROJEKTU, vy ho uložíte</text>
+        <text x="730" y="270" class="mono faint" font-size="11">dobrý start</text></g>
+      <path class="ln dash" data-f="2" d="M710 165 H620"/>
+    </svg>
+    <div class="callout f" data-f="3">Až vás ruční kopírování stavu začne obtěžovat, víte, proč se vyplatí <strong>Cowork</strong>. Nic se nemění, jen stav zapisuje agent místo vás.</div>
+  </div>
+</section>
+
+<!-- NEW:cviceni3 -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 4 · Projektový start</div>
+    <span class="ex">Cvičení 3 · 15 minut</span> <span class="aha">Aha moment</span>
+    <h1 style="margin-top:8px">Nechte agenta založit projekt</h1>
+    <p class="subtitle">Na workshopu jedeme přes <strong>Cowork</strong>. Ruční cesta je pro ty, kdo Cowork nemají: funguje taky, ale stav zapisujete vy.</p>
+    <div class="grid grid-2">
+      <div class="card f" data-f="1">
+        <span class="tag tag-priority">Cowork · doporučeno</span>
+        <ol class="steps steps--sm" style="margin-top:10px">
+          <li><span class="steps__n">1</span><div>Na disku vytvořte prázdnou složku a uložte do ní <code>PROJEKT-START.md</code>.</div></li>
+          <li><span class="steps__n">2</span><div>V Coworku: <strong>Add folder</strong> → tato složka.</div></li>
+          <li><span class="steps__n">3</span><div>Napište: <em>Přečti PROJEKT-START.md a proveď část A.</em></div></li>
+        </ol>
+      </div>
+      <div class="card f" data-f="2" style="opacity:.85">
+        <span class="tag" style="background:var(--surface-2);color:var(--ink-soft)">Bez Coworku · Claude Project, ruční</span>
+        <ol class="steps steps--sm" style="margin-top:10px">
+          <li><span class="steps__n">1</span><div>Nový Project, do chatu vložte <code>PROJEKT-START.md</code>.</div></li>
+          <li><span class="steps__n">2</span><div>Napište: <em>…proveď část A v ruční variantě.</em></div></li>
+          <li><span class="steps__n">3</span><div>Pravidla vložte do Instructions, STAV PROJEKTU si uložte.</div></li>
+        </ol>
+      </div>
+    </div>
+    <div class="callout good f" data-f="3"><strong>Aha:</strong> nepíšete žádné instrukce ručně. Agent vytvoří soubory, shrne projekt, položí 3 kontrolní otázky a navrhne první úkol. Práci sám nezačne, dokud neřeknete.</div>
+  </div>
+</section>
+
+<!-- 12 — TEST -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 4 · Projektový start</div>
+    <span class="ex">Cvičení 4 · 10 minut</span> <span class="aha">Aha moment</span>
+    <h1 style="margin-top:8px">Nový chat ví, kde jsme</h1>
+    <p class="subtitle">Test se nedělá v zakládacím chatu, tam AI odpovídá z konverzace. Zakládací chat zavřete a otevřete nový ve stejné složce nebo Projectu.</p>
+    <div class="grid grid-2" style="align-items:start">
+      <div>
+        <div class="chat" style="height:auto">
+          <div class="mono" style="font-family:var(--font-mono);font-size:11px;color:var(--ink-faint);text-align:center">nový chat · stejná složka</div>
+          <div class="bub me f" data-f="1">Jaký je cíl projektu, hlavní pravidlo a další krok?</div>
+          <div class="bub ai f" data-f="2"><strong>Cíl:</strong> přehled, jak 8 firem v EU používá AI v podpoře.<br><strong>Pravidlo:</strong> jen ověřené zdroje s odkazem a datem.<br><strong>Další krok:</strong> zpracovat firmu D.</div>
+        </div>
+        <div class="callout good f" data-f="3" style="margin-top:12px"><strong>Sedí s BRIEF a WORKLOG?</strong> Soubory se čtou samy. Stačí „Pokračujeme".</div>
+      </div>
+      <div class="card f" data-f="4">
+        <h3>Nesedí? Projděte v tomto pořadí</h3>
+        <ol class="steps steps--sm" style="margin-top:10px">
+          <li><span class="steps__n">1</span><div>Je nový chat opravdu <strong>ve stejné složce</strong> nebo Projectu?</div></li>
+          <li><span class="steps__n">2</span><div>Jsou ve složce <code>AGENTS.md</code>, <code>BRIEF.md</code>, <code>WORKLOG.md</code> (+ <code>CLAUDE.md</code>)?</div></li>
+          <li><span class="steps__n">3</span><div>Napište <em>„Přečti AGENTS.md a WORKLOG.md"</em> a test zopakujte. Když teď sedí, začínejte touhle větou každou práci.</div></li>
+          <li><span class="steps__n">4</span><div>Ruční cesta: jsou pravidla v Instructions? V obyčejném chatu vložte celý balíček pro návrat.</div></li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 13 — RYTMUS -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 4 · Projektový start</div>
+    <h1>Tři věty, které jsou celý návyk</h1>
+    <p class="subtitle">Jeden projekt, v něm nový chat na každý úkol. Kontinuitu nedrží chat, ale WORKLOG. Píšete je v pracovním projektu, ne v Kompasu.</p>
+    <div class="loopwrap">
+      <svg class="dia" viewBox="0 0 420 380">
+        <circle cx="210" cy="190" r="140" class="ln" style="stroke:var(--line)"/>
+        <g class="orbit"><circle cx="210" cy="50" r="9" class="accfill"/></g>
+        <g><rect x="130" y="22" width="160" height="56" rx="28" class="box acc"/><text x="210" y="48" text-anchor="middle" font-size="14" style="font-family:var(--font-display)">„Pokračujeme."</text><text x="210" y="66" text-anchor="middle" font-size="11" class="soft">AI čte WORKLOG</text></g>
+        <g><rect x="292" y="162" width="124" height="56" rx="14" class="box"/><text x="354" y="186" text-anchor="middle" font-size="13.5">práce</text><text x="354" y="204" text-anchor="middle" font-size="11" class="soft">malé kroky</text></g>
+        <g><rect x="120" y="302" width="180" height="56" rx="28" class="box good"/><text x="210" y="328" text-anchor="middle" font-size="14" style="font-family:var(--font-display)">„Zapiš stav."</text><text x="210" y="346" text-anchor="middle" font-size="11" class="soft">AI přepíše WORKLOG</text></g>
+        <g><rect x="4" y="162" width="124" height="56" rx="14" class="box"/><text x="66" y="186" text-anchor="middle" font-size="13.5">nový chat</text><text x="66" y="204" text-anchor="middle" font-size="11" class="soft">nový úkol</text></g>
+      </svg>
+      <div>
+        <table class="deck-table">
+          <tr class="f" data-f="1"><td><strong>„Pokračujeme."</strong></td><td>Na začátku. AI řekne, kde jsme, a navrhne krok.</td></tr>
+          <tr class="f" data-f="2"><td><strong>„Zapiš do poznámek."</strong></td><td>Nápad mimo úkol se odloží a vy pokračujete.</td></tr>
+          <tr class="f" data-f="3"><td><strong>„Zapiš stav."</strong></td><td>Na konci. Předávací lístek pro příště.</td></tr>
+        </table>
+        <div class="callout f" data-f="4" style="margin-top:16px">Dlouhý chat nezachraňujte. <strong>Zapište stav a otevřete nový.</strong></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 14 — PLNÝ PROJEKT -->
+<section data-chapter="k5" class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 5 · Pro pokročilé</div>
+    <h1>Plný projekt: pět souborů, jedna informace = jedno místo</h1>
+    <p class="subtitle">Když přibývají rozhodnutí, lidé nebo fáze. Každá informace putuje po jasné cestě a nikde není dvakrát.</p>
+    <svg class="dia" viewBox="0 0 1000 340">
+      <!-- pevné vrstvy nahoře -->
+      <g class="f" data-f="1"><rect x="40" y="20" width="250" height="78" rx="12" class="box"/><text x="58" y="50" class="mono accfill" font-size="14">BRIEF</text><text x="58" y="76" font-size="13" class="soft">kam jdeme · skoro se nemění</text></g>
+      <g class="f" data-f="1"><rect x="375" y="20" width="250" height="78" rx="12" class="box"/><text x="393" y="50" class="mono accfill" font-size="14">PRAVIDLA (AGENTS)</text><text x="393" y="76" font-size="13" class="soft">jak to u nás chodí · zřídka</text></g>
+      <g class="f" data-f="1"><rect x="710" y="20" width="250" height="78" rx="12" class="box acc"/><text x="728" y="50" class="mono accfill" font-size="14">DECISIONS</text><text x="728" y="76" font-size="13" class="soft">co a proč · jen přibývá</text></g>
+      <!-- životní cyklus dole -->
+      <g class="f" data-f="2"><rect x="40" y="215" width="220" height="78" rx="12" class="box warn"/><text x="58" y="245" class="mono accfill" font-size="14">NOTES</text><text x="58" y="271" font-size="13" class="soft">nápad na později</text></g>
+      <g class="f" data-f="2"><rect x="390" y="215" width="220" height="78" rx="12" class="box good"/><text x="408" y="245" class="mono goodfill" font-size="14">WORKLOG</text><text x="408" y="271" font-size="13" class="soft">na tom se teď dělá</text></g>
+      <g class="f" data-f="2"><rect x="740" y="215" width="220" height="78" rx="12" class="box"/><text x="758" y="245" class="mono accfill" font-size="14">VÝSTUP</text><text x="758" y="271" font-size="13" class="soft">hotová práce</text></g>
+      <path class="ln acc draw" data-f="3" style="--len:140" d="M260 254 H390"/>
+      <text x="325" y="242" text-anchor="middle" font-size="11.5" class="soft f" data-f="3">dostane zadání</text>
+      <path class="ln acc draw" data-f="3" style="--len:140" d="M610 254 H740"/>
+      <text x="675" y="242" text-anchor="middle" font-size="11.5" class="soft f" data-f="3">dokončeno</text>
+      <path class="ln acc draw" data-f="3" style="--len:420" d="M560 215 C 600 150, 760 150, 835 98"/>
+      <text x="700" y="140" text-anchor="middle" font-size="11.5" class="soft f" data-f="3">rozhodnuto</text>
+      <g class="f-fade" data-f="3"><circle r="8" class="accfill travel" style="offset-path: path('M150 254 H500 C 560 254, 700 160, 835 98');"/></g>
+    </svg>
+    <div class="grid grid-2">
+      <div class="callout f" data-f="4">Po přesunu se z původního místa <strong>smaže</strong>, ale jen z NOTES a WORKLOG.</div>
+      <div class="callout good f" data-f="4">BRIEF a DECISIONS se nemažou. Změna = <strong>nové rozhodnutí</strong>, staré zůstává se značkou „nahrazeno".</div>
+    </div>
+  </div>
+</section>
+
+<!-- 15 — DVA PROSTORY -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 5 · Pro pokročilé</div>
+    <h1>Dva prostory: přemýšlet × dělat</h1>
+    <p class="subtitle">Když se v jednom chatu míchá „o čem přemýšlíme" s „co přesně děláme", rozdělte to. Spojují je soubory, ne kopírování chatu.</p>
+    <svg class="dia" viewBox="0 0 1000 320">
+      <g class="f" data-f="1"><rect x="20" y="30" width="330" height="250" rx="18" class="box acc"/>
+        <text x="40" y="64" font-size="17" style="font-family:var(--font-display)">Rozhodovací prostor</text>
+        <text x="40" y="96" font-size="13.5" class="soft">směr, varianty, oponentura</text>
+        <text x="40" y="150" font-size="12.5" class="mono faint">vývoj: návrh, specifikace</text>
+        <text x="40" y="172" font-size="12.5" class="mono faint">výzkum: otázka, metodika</text>
+        <text x="40" y="194" font-size="12.5" class="mono faint">školení: cíle, osnova</text></g>
+      <g class="f" data-f="1"><rect x="650" y="30" width="330" height="250" rx="18" class="box"/>
+        <text x="670" y="64" font-size="17" style="font-family:var(--font-display)">Prováděcí prostor</text>
+        <text x="670" y="96" font-size="13.5" class="soft">práce podle zadání</text>
+        <text x="670" y="150" font-size="12.5" class="mono faint">vývoj: implementace</text>
+        <text x="670" y="172" font-size="12.5" class="mono faint">výzkum: sběr a zpracování</text>
+        <text x="670" y="194" font-size="12.5" class="mono faint">školení: psaní lekcí</text></g>
+      <g class="f" data-f="2"><rect x="425" y="70" width="150" height="56" rx="12" class="box acc"/><text x="500" y="104" text-anchor="middle" class="mono" font-size="13">DECISIONS</text></g>
+      <path class="ln acc draw" data-f="2" style="--len:90" d="M350 98 H425"/>
+      <path class="ln acc draw" data-f="2" style="--len:90" d="M575 98 H650"/>
+      <text x="388" y="88" text-anchor="middle" font-size="11" class="soft f" data-f="2">zapíše</text>
+      <text x="612" y="88" text-anchor="middle" font-size="11" class="soft f" data-f="2">čte</text>
+      <g class="f" data-f="3"><rect x="425" y="190" width="150" height="56" rx="12" class="box warn"/><text x="500" y="216" text-anchor="middle" class="mono" font-size="12">Nález</text><text x="500" y="234" text-anchor="middle" font-size="11" class="soft">k rozhodnutí</text></g>
+      <path class="ln dash flow f-fade" data-f="3" d="M650 218 H575"/>
+      <path class="ln dash flow f-fade" data-f="3" d="M425 218 H350"/>
+    </svg>
+    <div class="callout warn f" data-f="4">Narazí-li prováděcí práce na rozpor: <strong>zastaví jen dotčený krok</strong>, zapíše nález a pokračuje v tom, čeho se rozpor netýká. Neodhaduje.</div>
+  </div>
+</section>
+
+<!-- 16 — PROVĚŘILI JSME TO NA SOBĚ -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 5 · Pro pokročilé</div>
+    <span class="aha">Aha moment</span>
+    <h1>Metodiku jsme prověřili na sobě</h1>
+    <p class="subtitle">Tahle prezentace je sama výsledkem stejného postupu: nápad, zadání, rozhodnutí, oponentura a oprava.</p>
+    <div class="timeline">
+      <div class="tl f-fade" data-f="1"><div class="when">1</div><h3>Pozorování</h3><p>lidé „rvou" vše do jednoho chatu</p></div>
+      <div class="tl f-fade" data-f="2"><div class="when">2</div><h3>Inspirace</h3><p>velký projekt + AI Kompas: co funguje, co chybí</p></div>
+      <div class="tl f-fade" data-f="3"><div class="when">3</div><h3>Rozhodnutí</h3><p>5 souborů, univerzální pro vývoj i výzkum</p></div>
+      <div class="tl f-fade" data-f="4"><div class="when">4</div><h3>Verze 0.1</h3><p>průvodce, kouč zadání, provozní příručka</p></div>
+      <div class="tl meta f-fade" data-f="5"><div class="when">5</div><h3>Oponentura</h3><p>jiná AI (Codex) hledala, kde to selže</p></div>
+      <div class="tl meta f-fade" data-f="6"><div class="when">6</div><h3>Verze 0.2</h3><p>10 oprav, 3 návrhy vědomě odmítnuté</p></div>
+    </div>
+    <div class="grid grid-3" style="margin-top:26px">
+      <div class="card f" data-f="6"><h3>Převzali jsme</h3><p class="mini" style="margin:6px 0 0">filtr chat / lehký / plný, kratší rozhovor, ověřovací test, STAV PROJEKTU pro ruční variantu</p></div>
+      <div class="card f" data-f="6"><h3>Odmítli jsme</h3><p class="mini" style="margin:6px 0 0">vyškrtnout ruční variantu a dva prostory, povinná pole podle typu (zabila by univerzálnost)</p></div>
+      <div class="callout good f" data-f="6">Totéž chceme od vás: <strong>nechte si své zadání oponovat</strong>. Druhá AI najde díry, které nevidíte.</div>
+    </div>
+  </div>
+</section>
+
+<!-- 17 — CHYBY -->
+<section data-chapter="k6" class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 6 · V praxi</div>
+    <h1>Typické chyby a rychlé opravy</h1>
+    <p class="subtitle">Většina problémů má jednoduchou příčinu: chybí jeden zápis.</p>
+    <table class="deck-table">
+      <tr><th>Příznak</th><th>Oprava</th></tr>
+      <tr class="f" data-f="1"><td>AI neví, kde jsme</td><td>Na konci chybělo „zapiš stav". V novém chatu: „Přečti AGENTS.md a WORKLOG.md."</td></tr>
+      <tr class="f" data-f="2"><td>AI znovu otevírá rozhodnuté věci</td><td>Rozhodnutí nejsou zapsaná. „Zapiš rozhodnutí."</td></tr>
+      <tr class="f" data-f="3"><td>AI „vylepšuje", co nechcete</td><td>Doplňte pravidlo: „žádná vylepšení mimochodem".</td></tr>
+      <tr class="f" data-f="4"><td>Projekt se rozrůstá</td><td>Doplňte „mimo rozsah" v BRIEF, nápady odkládejte.</td></tr>
+      <tr class="f" data-f="5"><td>Chat je pomalý a zmatený</td><td>Zapište stav, otevřete nový chat.</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- NEW:tahak -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 6 · Tahák</div>
+    <span class="howto">Tahák</span> <a class="dl" data-link="balicky" target="_blank" rel="noopener" style="float:right">Otevřít AI balíčky ↗</a>
+    <h1 style="margin-top:8px">Všechno na jedné stránce</h1>
+    <p class="subtitle">Když se k tomu vrátíte za měsíc, začněte tady.</p>
+    <div class="grid grid-3" style="align-items:start">
+      <div class="card">
+        <h3>Nový problém</h3>
+        <ol class="bullets" style="margin-top:8px;font-size:13.5px;padding-left:18px">
+          <li>Otevřete Project <strong>AI pracovní kompas</strong>.</li>
+          <li>„Začínáme“ nebo rovnou popis problému.</li>
+          <li>Chat nebo opakovaná práce → jeho handoff.</li>
+          <li>Project s fázemi na týdny → handoff vložit do chatu s <code>01-PRIPRAVA-ZADANI.md</code>.</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Nový projekt</h3>
+        <ol class="bullets" style="margin-top:8px;font-size:13.5px;padding-left:18px">
+          <li><code>01</code> do chatu → „Začínáme“ → <code>PROJEKT-START.md</code>.</li>
+          <li>Složka v Coworku, ve které je <strong>jen</strong> PROJEKT-START.md, nebo nový Project.</li>
+          <li>„Přečti PROJEKT-START.md a proveď část A.“</li>
+          <li>Zavřít chat, v novém test: „Jaký je cíl, hlavní pravidlo a další krok?“</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Každý den</h3>
+        <div class="kv" style="margin-top:8px;font-size:13.5px">
+          <span class="k">začátek</span><span>„Pokračujeme.“</span>
+          <span class="k">nápad</span><span>„Zapiš do poznámek.“</span>
+          <span class="k">rozhodnutí</span><span>„Zapiš rozhodnutí.“</span>
+          <span class="k">konec</span><span>„Zapiš stav.“</span>
+          <span class="k">AI neví</span><span>„Přečti AGENTS.md a WORKLOG.md.“</span>
+        </div>
+      </div>
+    </div>
+    <table class="deck-table" style="margin-top:14px;font-size:13px">
+      <tr><th>Stavový blok</th><th>Kam ho vložit</th></tr>
+      <tr><td><code>compass_checkpoint_v1</code></td><td>zpátky do <strong>Kompasu</strong></td></tr>
+      <tr><td><code>PRIPRAVA_CHECKPOINT</code></td><td>nový chat s <code>01-PRIPRAVA-ZADANI.md</code></td></tr>
+      <tr><td><code>STAV PROJEKTU</code> / balíček pro návrat</td><td>začátek nového chatu v <strong>pracovním</strong> projektu / obyčejném chatu</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- 18 — VYZKOUŠEJTE -->
+<section class="slide">
+  <div class="slide__inner">
+    <div class="slide__num">Kapitola 6 · V praxi</div>
+    <h1>Vyzkoušejte to tento týden</h1>
+    <p class="subtitle">Na vlastním reálném úkolu, ne na vymyšleném příkladu. Jinak se návyk nepřenese.</p>
+    <div class="grid grid-3">
+      <div class="file f" data-f="1"><div class="fname">1 · 01-PRIPRAVA-ZADANI.md</div><div class="fhuman">Připravte zadání</div><p>Z Kompasu, nebo rovnou: vložte do chatu, „Začínáme", dojděte k PROJEKT-START.md.</p></div>
+      <div class="file f" data-f="2"><div class="fname">2 · PROJEKT-START.md</div><div class="fhuman">Založte projekt</div><p>V Coworku (nebo ručně v Projectu). Zakládací chat zavřete a test udělejte v novém.</p></div>
+      <div class="file good f" data-f="3"><div class="fname">3 · 02-PROVOZ-PROJEKTU.md</div><div class="fhuman">Týden v rytmu</div><p>Pokračujeme · zapiš do poznámek · zapiš stav.</p></div>
+    </div>
+    <div class="callout f" data-f="4" style="margin-top:20px"><strong>Příště:</strong> každý řekne jednu věc, kde to drhlo. Z toho vznikne další verze metodiky.</div>
+    <p style="margin-top:14px" class="f" data-f="4"><a class="dl" data-link="balicky" target="_blank" rel="noopener">Otevřít AI balíčky ↗</a></p>
+    <p class="footnote f" data-f="4" style="margin-top:10px">Materiály: sdílená složka „AI balíčky" (AI Kompas, Projektový start). Tahle prezentace slouží i jako návod: kapitoly najdete na 2. slidu.</p>
+  </div>
+</section>
+
+</div>
+
+<script>
+// Fragmenty: počty kroků se odvodí z data-f v každém slidu (musí být před deck.js).
+(function () {
+  var slides = document.querySelectorAll('.slide'), map = {};
+  slides.forEach(function (s, i) {
+    var max = 0;
+    s.querySelectorAll('[data-f]').forEach(function (el) { max = Math.max(max, +el.getAttribute('data-f')); });
+    if (max) map[i] = max;
+  });
+  window.DECK_FRAGMENTS = map;
+})();
+</script>
+<script>
+// Sdílený navigační/komentářový engine pro prezentace.
+// Vytaženo z presentations/2026-09-03-prezentace-vedeni-ai-adopce.html (navigace) +
+// komentáře (2026-09-15, revize 2026-09-15: plovoucí přetažitelný panel místo
+// políčka na každém slidu) — "obousměrná prezentace" pro draft review, viz
+// presentations/_template/README.md.
+//
+// Použití: <body data-presentation-id="2026-xx-xx-nazev"> a na konci stránky
+// <script src="../_template/deck.js"></script>. Panel/toolbar se vytváří JS-em,
+// není potřeba žádná markup navíc ve slidech. Volitelně window.DECK_FRAGMENTS =
+// {slideIndex: maxSteps} PŘED načtením deck.js pro postupné odkrývání.
+(function () {
+  'use strict';
+
+  var slides = Array.from(document.querySelectorAll('.slide'));
+  var maxSteps = window.DECK_FRAGMENTS || {};
+  var presentationId = document.body.getAttribute('data-presentation-id') || 'untitled';
+  var current = 0, step = 0;
+
+  function totalStepsFor(i) { return maxSteps.hasOwnProperty(i) ? maxSteps[i] : 0; }
+
+  function render() {
+    slides.forEach(function (s, i) {
+      s.classList.toggle('is-active', i === current);
+      if (i === current) s.setAttribute('data-step', step);
+    });
+    var countEl = document.getElementById('slideCount');
+    var fillEl = document.getElementById('progressFill');
+    if (countEl) countEl.textContent = current === 0 ? 'Úvod' : current + ' / ' + (slides.length - 1);
+    if (fillEl) fillEl.style.width = (current / (slides.length - 1) * 100) + '%';
+    updateCommentPanelForCurrentSlide();
+  }
+
+  function next() {
+    var max = totalStepsFor(current);
+    if (step < max) { step++; render(); return; }
+    if (current < slides.length - 1) { current++; step = 0; render(); }
+  }
+  function prev() {
+    if (step > 0) { step--; render(); return; }
+    if (current > 0) { current--; step = totalStepsFor(current); render(); }
+  }
+
+  function isInteractive(el) {
+    return !!(el && el.closest && el.closest('.comment-panel, .comment-toolbar, textarea, button'));
+  }
+
+  document.addEventListener('keydown', function (e) {
+    if (isInteractive(e.target)) return; // nekrást focus z komentáře/tlačítek
+    if (e.key === ' ' || e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === 'PageDown') {
+      e.preventDefault();
+      if (e.shiftKey) prev(); else next();
+    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp' || e.key === 'PageUp' || e.key === 'Backspace') {
+      e.preventDefault();
+      prev();
+    }
+  });
+
+  // ---------- komentář — jeden plovoucí panel pro celou prezentaci ----------
+  var commentsKey = 'deck-comments:' + presentationId;
+  var posKey = 'deck-panel-pos:' + presentationId;
+  var collapseKey = 'deck-panel-collapsed:' + presentationId;
+  var approveKey = 'deck-approve:' + presentationId;
+
+  function loadJSON(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) ?? fallback; }
+    catch (e) { return fallback; }
+  }
+  function saveJSON(key, val) {
+    try { localStorage.setItem(key, JSON.stringify(val)); } catch (e) { /* ignor. */ }
+  }
+
+  var comments = loadJSON(commentsKey, {});
+
+  var panel = document.createElement('div');
+  panel.className = 'comment-panel';
+  panel.id = 'commentPanel';
+  panel.innerHTML =
+    '<div class="comment-panel__header" id="commentPanelHeader">' +
+      '<span>💬 Komentář ke slidu <span id="commentPanelNum">1</span></span>' +
+      '<button class="comment-panel__collapse" id="commentPanelToggle" type="button" title="Sbalit/rozbalit">–</button>' +
+    '</div>' +
+    '<div class="comment-panel__body">' +
+      '<textarea id="commentPanelTextarea" placeholder="Napiš poznámku k téhle slide…"></textarea>' +
+    '</div>' +
+    '<div class="comment-panel__footer">' +
+      '<span class="drag-hint">přetáhni za záhlaví ↑</span>' +
+      '<span class="saved-hint">✓ uloženo</span>' +
+    '</div>';
+  document.body.appendChild(panel);
+
+  var toolbar = document.createElement('div');
+  toolbar.className = 'comment-toolbar';
+  toolbar.innerHTML =
+    '<button id="approveFinal" type="button">☆ Schválit jako finální</button>' +
+    '<button id="exportComments" type="button">Exportovat komentáře</button>';
+  document.body.appendChild(toolbar);
+
+  var panelHeader = document.getElementById('commentPanelHeader');
+  var panelNum = document.getElementById('commentPanelNum');
+  var textarea = document.getElementById('commentPanelTextarea');
+  var collapseBtn = document.getElementById('commentPanelToggle');
+
+  function updateCommentPanelForCurrentSlide() {
+    if (panelNum) panelNum.textContent = current + 1;
+    if (textarea) textarea.value = comments[String(current)] || '';
+  }
+
+  if (textarea) {
+    textarea.addEventListener('input', function () {
+      comments[String(current)] = textarea.value;
+      saveJSON(commentsKey, comments);
+      showSavedHint();
+    });
+  }
+
+  var savedHintTimer = null;
+  function showSavedHint() {
+    var hint = panel.querySelector('.saved-hint');
+    if (!hint) return;
+    hint.classList.add('show');
+    clearTimeout(savedHintTimer);
+    savedHintTimer = setTimeout(function () { hint.classList.remove('show'); }, 1500);
+  }
+
+  // sbalit/rozbalit (stav si pamatuje mezi relacemi)
+  var collapsed = loadJSON(collapseKey, false);
+  function applyCollapsed() {
+    panel.classList.toggle('is-collapsed', collapsed);
+    if (collapseBtn) collapseBtn.textContent = collapsed ? '+' : '–';
+  }
+  applyCollapsed();
+  if (collapseBtn) {
+    collapseBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      collapsed = !collapsed;
+      saveJSON(collapseKey, collapsed);
+      applyCollapsed();
+    });
+  }
+
+  // přetahování — pozice se pamatuje per prezentace
+  (function makeDraggable() {
+    var savedPos = loadJSON(posKey, null);
+    if (savedPos && typeof savedPos.left === 'number' && typeof savedPos.top === 'number') {
+      panel.style.left = savedPos.left + 'px';
+      panel.style.top = savedPos.top + 'px';
+      panel.style.right = 'auto';
+    }
+    var dragging = false, offsetX = 0, offsetY = 0;
+    panelHeader.addEventListener('mousedown', function (e) {
+      if (e.target === collapseBtn) return;
+      dragging = true;
+      var rect = panel.getBoundingClientRect();
+      offsetX = e.clientX - rect.left;
+      offsetY = e.clientY - rect.top;
+      panel.style.right = 'auto';
+      e.preventDefault();
+    });
+    document.addEventListener('mousemove', function (e) {
+      if (!dragging) return;
+      var left = Math.max(0, Math.min(window.innerWidth - 60, e.clientX - offsetX));
+      var top = Math.max(0, Math.min(window.innerHeight - 40, e.clientY - offsetY));
+      panel.style.left = left + 'px';
+      panel.style.top = top + 'px';
+    });
+    document.addEventListener('mouseup', function () {
+      if (!dragging) return;
+      dragging = false;
+      var rect = panel.getBoundingClientRect();
+      saveJSON(posKey, { left: rect.left, top: rect.top });
+    });
+  })();
+
+  // ---------- schválit jako finální ----------
+  var approveBtn = document.getElementById('approveFinal');
+  var approved = localStorage.getItem(approveKey) === '1';
+  function renderApproveBtn() {
+    if (!approveBtn) return;
+    approveBtn.textContent = approved ? '✓ Navrženo jako finální' : '☆ Schválit jako finální';
+    approveBtn.classList.toggle('is-approved', approved);
+  }
+  renderApproveBtn();
+  if (approveBtn) {
+    approveBtn.addEventListener('click', function () {
+      approved = !approved;
+      try { localStorage.setItem(approveKey, approved ? '1' : '0'); } catch (e) { /* ignor. */ }
+      renderApproveBtn();
+    });
+  }
+
+  // ---------- export komentářů ----------
+  var exportBtn = document.getElementById('exportComments');
+  if (exportBtn) {
+    exportBtn.addEventListener('click', function () {
+      var nonEmpty = {};
+      Object.keys(comments).forEach(function (k) { if (comments[k] && comments[k].trim()) nonEmpty[k] = comments[k]; });
+      var payload = {
+        presentation_id: presentationId,
+        exported_at: new Date().toISOString(),
+        propose_final: approved,
+        comments: nonEmpty,
+      };
+      var blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = presentationId + '.feedback.json';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    });
+  }
+
+  render();
+})();
+
+</script>
+<script>
+// Fragmenty → třída .is-on podle data-step aktivního slidu (deck.js ho nastavuje).
+(function () {
+  var slides = Array.from(document.querySelectorAll('.slide'));
+  function sync() {
+    slides.forEach(function (s) {
+      var active = s.classList.contains('is-active');
+      var step = active ? +(s.getAttribute('data-step') || 0) : 0;
+      s.querySelectorAll('[data-f]').forEach(function (el) {
+        el.classList.toggle('is-on', active && step >= +el.getAttribute('data-f'));
+      });
+    });
+  }
+  var mo = new MutationObserver(sync);
+  slides.forEach(function (s) { mo.observe(s, { attributes: true, attributeFilter: ['class', 'data-step'] }); });
+  sync();
+})();
+</script>
+
+<script>
+// Rozcestník (klik na kapitolu) a kopírování promptů.
+(function () {
+  var slides = Array.from(document.querySelectorAll('.slide'));
+  function idx() { return slides.findIndex(function (s) { return s.classList.contains('is-active'); }); }
+  function press(key) { document.dispatchEvent(new KeyboardEvent('keydown', { key: key, bubbles: true })); }
+  document.querySelectorAll('[data-goto]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var target = slides.findIndex(function (s) { return s.getAttribute('data-chapter') === b.getAttribute('data-goto'); });
+      if (target < 0) return;
+      var guard = 0;
+      while (idx() < target && guard++ < 500) press('ArrowRight');
+      while (idx() > target && guard++ < 500) press('ArrowLeft');
+      b.blur();
+    });
+  });
+  // ukazatel kroků v HUD (samostudium)
+  var hud = document.querySelector('.hud .count');
+  var sc = document.createElement('span'); sc.className = 'stepcount';
+  if (hud) hud.parentNode.insertBefore(sc, hud.nextSibling);
+  function upd() {
+    var s = slides[idx()]; if (!s) return;
+    var max = (window.DECK_FRAGMENTS || {})[idx()] || 0, st = +(s.getAttribute('data-step') || 0);
+    sc.textContent = max ? '· krok ' + st + '/' + max + (st < max ? ' →' : '') : '';
+  }
+  new MutationObserver(upd).observe(document.querySelector('.deck'), { subtree: true, attributes: true, attributeFilter: ['class', 'data-step'] });
+  upd();
+  document.querySelectorAll('.prompt .copy').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var t = b.parentElement.querySelector('pre').innerText;
+      var ok = function () { b.textContent = 'Zkopírováno'; b.classList.add('done'); setTimeout(function () { b.textContent = 'Kopírovat'; b.classList.remove('done'); }, 1500); };
+      var fail = function () { b.textContent = 'Označte a zkopírujte ručně'; setTimeout(function () { b.textContent = 'Kopírovat'; }, 2500); };
+      var legacy = function () { try { var ta = document.createElement('textarea'); ta.value = t; ta.style.position = 'fixed'; ta.style.opacity = '0'; document.body.appendChild(ta); ta.select(); var r = document.execCommand('copy'); document.body.removeChild(ta); r ? ok() : fail(); } catch (e) { fail(); } };
+      if (navigator.clipboard && window.isSecureContext) navigator.clipboard.writeText(t).then(ok, legacy); else legacy();
+      b.blur();
+    });
+  });
+})();
+</script>
+<script>
+// ===== ODKAZ NA SDÍLENOU SLOŽKU „AI balíčky“ — doplňte URL  =====
+window.BALICKY_URL = 'https://github.com/lurek18/ai-balicky';
+(function () {
+  document.querySelectorAll('[data-link="balicky"]').forEach(function (a) {
+    if (window.BALICKY_URL) { a.href = window.BALICKY_URL; }
+    else { a.classList.add('is-missing'); a.textContent = 'Odkaz na AI balíčky doplní lektor'; }
+  });
+})();
+</script>
+</body>
+</html>
