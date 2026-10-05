@@ -4,6 +4,8 @@
 
 **Verze:** v0.3 · 10/2026
 
+> **Nejjednodušší cesta:** otevři **https://lurek18.github.io/ai-balicky/**. Tam je celý návod krok za krokem a u každého textu tlačítko **Kopírovat**, takže nemusíš nic stahovat ani otevírat soubory. Tenhle balíček je pro ty, kdo chtějí soubory u sebe.
+
 ## Co je v balíčku
 
 | Soubor | K čemu |
@@ -31,15 +33,15 @@ Máš **AI Kompas**? Začni v něm. Když doporučí Project a práce má fáze 
 - `Začínáme`, nebo
 - když přicházíš z Kompasu: *„Tady je handoff z AI Kompasu. Práce bude mít fáze a rozhodnutí, proto jdu přes Projektový start. Převezmi, co už je známé, a doptej se jen na zbytek.“* a pod to celý handoff.
 
-Na konci dostaneš soubor **`PROJEKT-START.md`**. Ulož si ho.
+Na konci dostaneš blok textu **PROJEKT-START**. Zkopíruj ho (u bloku je tlačítko Copy). Pro Cowork si ho ulož jako soubor `PROJEKT-START.md`.
 
 **2. Založ projekt (5–10 min).**
-- **Cowork (doporučeno):** vytvoř na disku prázdnou složku a ulož do ní **jen** `PROJEKT-START.md`. V Coworku **Add folder** → tato složka. Napiš: *Přečti PROJEKT-START.md a proveď část A.*
-- **Bez Coworku (Claude/ChatGPT Project):** nový Project, do chatu vlož `PROJEKT-START.md` a napiš: *Přečti PROJEKT-START.md a proveď část A v ruční variantě.* Pravidla vlož do Instructions a STAV PROJEKTU si ulož.
+- **Claude Project (nejjednodušší, bez souborů):** v Claude **Projects → New project**. Do chatu projektu vlož zkopírovaný PROJEKT-START a pod něj napiš: *Proveď část A v ruční variantě.* Blok **Pravidla a zadání** vlož do **Instructions**, blok **STAV PROJEKTU** si ulož do poznámek.
+- **Cowork (pro pokročilé, stav zapisuje agent sám):** vytvoř na disku prázdnou složku a ulož do ní **jen** `PROJEKT-START.md`. V Coworku **Add folder** → tato složka. Napiš: *Přečti PROJEKT-START.md a proveď část A.*
 - Další nástroje (Claude Code, Codex, Gemini) najdeš v `00-PRUVODCE.md`, kapitola 5.
 - Bez kouče, ručně: zkopíruj obsah `sablony/1 lehky-projekt/` (nebo `2 plny-projekt/`) do prázdné složky a vyplň BRIEF.
 
-**3. Ověř a pracuj.** Zakládací chat **zavři**. Otevři nový ve stejné složce nebo Projectu a zeptej se: *„Jaký je cíl projektu, hlavní pravidlo a další krok?“* Když odpověď sedí, můžeš pracovat. Když ne, postup je v `00-PRUVODCE.md`, krok 3.
+**3. Ověř a pracuj.** Zakládací chat **zavři**. Otevři nový ve stejném Projectu (nebo složce v Coworku), v Projectu nejdřív vlož STAV PROJEKTU, a zeptej se: *„Jaký je cíl projektu, hlavní pravidlo a další krok?“* Když odpověď sedí, můžeš pracovat. Když ne, postup je v `00-PRUVODCE.md`, krok 3.
 
 ## Každý den
 

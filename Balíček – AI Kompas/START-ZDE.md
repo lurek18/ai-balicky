@@ -4,6 +4,8 @@
 
 **Verze:** RC 0.1 · 10/2026
 
+> **Nejjednodušší cesta:** otevři **https://lurek18.github.io/ai-balicky/**. Tam je celý návod krok za krokem a u každého textu tlačítko **Kopírovat**, takže nemusíš nic stahovat ani otevírat soubory. Tenhle balíček je pro ty, kdo chtějí soubory u sebe.
+
 ## Co je v balíčku
 
 | Soubor | K čemu | Kam ho dáš |
@@ -44,4 +46,4 @@ Opakovaná práce se stejnými pravidly (např. měsíční report) Projektový 
 
 ## Víc informací
 
-Prezentace s návodem a cvičeními je v balíčku Projektový start: `Prezentace/Projektovy-start-workshop.html`. Otevři ji v prohlížeči a ovládej šipkami. Části 1 a 2 se týkají Kompasu.
+Prezentace s návodem a cvičeními: https://lurek18.github.io/ai-balicky/prezentace.html (ovládání šipkami). Je i v balíčku Projektový start ve složce `Prezentace`.
